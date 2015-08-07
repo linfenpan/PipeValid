@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>写一个表单验证器 v 1.0.0</title>
+</head>
+<body>
+    完整第1版的表单验证<br/>
+    感觉提供的 then 和 end 方法，没什么用处..<br/>
+    不能跟其它属性搭配，就是挺废的，以后维护，再跟其它属性搭配吧<br/>
+<code style="
+    background-color: #000;
+    display: inline-block;
+    padding: 10px 20px;
+    border: 2px solid #666;
+    margin: 10px;
+    color: #fff;"><pre>
+var valid = new PipeValid();
+
+// then 和 end 必须搭配使用
+valid.check("name").min(10).then().max(20, "名字不能超过20位").end().notEmpty("名字不能为空").max(5, "最大不超过5个字");
+// 跟以往一样
+valid.check("age").int().error("年龄必须是整数")
+
+// 返回改为了 Deferred 对象
+valid.start(true, {
+    name: "123456",
+    age: "xxyy,,"
+}).done(function(){
+    console.log("验证成功");
+}).fail(function(){
+    console.log(arguments);
+});
+
+</pre></code>
+
+</body>
+<script src="PipeValid-1.0.0.min.js" charset="utf-8"></script>
+<script type="text/javascript">
+
+    var valid = new PipeValid();
+
+    // then 和 end 必须搭配使用
+    valid.check("name").min(10).then().max(20, "名字不能超过20位").end().notEmpty("名字不能为空").max(5, "最大不超过5个字");
+    // 跟以往一样
+    valid.check("age").int().error("年龄必须是整数")
+
+    // 返回改为了 Deferred 对象
+    valid.start(true, {
+        name: "123456",
+        age: "xxyy,,"
+    }).done(function(){
+        console.log("验证成功");
+    }).fail(function(){
+        console.log(arguments);
+    });
+
+</script>
+<script>
+    var valid2 = PipeValid();
+
+    valid2.add("onlyChar", function(val){
+        return /^(\d+|\w+)$/g.test(val);
+    });
+
+    valid2.check("name").notEmpty().error("用户名不能为空").min(3).error("用户名至少3位");
+    valid2.check("password").notEmpty("密码不能为空").min(6, "密码最少6位").onlyChar("密码只能是数字或字母");
+    valid2.check("age").int("年龄必须是整数");
+    valid2.check("address").max(20, "地址最多20位");
+    valid2.check("school").max(15, "学校最多15位");
+    valid2.check("books").define(function(list){
+        return list.length > 0;
+    }, "必须选择书本");
+
+    valid2.start({
+        name: "da宗熊",
+        password: "123456份",
+        books: []
+    }).fail(function(e){
+        console.log(e);
+    });
+</script>
+</html>

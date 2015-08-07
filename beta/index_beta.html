@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>写一个全新的验证器 beta 版</title>
+</head>
+<body>
+    基本功能跑通了，就是验证的时候，没有任何规律，<br/>
+    而且，方法命名有点随意，结构组织太坑爹了<br/>
+<code style="
+    background-color: #000;
+    display: inline-block;
+    padding: 10px 20px;
+    border: 2px solid #666;
+    margin: 10px;
+    color: #fff;"><pre>
+var valid = new PipeValid();
+valid.add("isBear", function(val){
+    return val == "bear";
+});
+
+valid.error(function(res){
+    console.log(res);
+});
+valid.success(function(){
+    console.log("验证成功..");
+});
+
+valid.check("name").min(4).then("名字最少4位").max(10, "不能超过10位");
+valid.check("bear").isBear("bear必须是bear").min(30).then("最小30字符");
+valid.check("age").int("必须是整数");
+
+valid.start(false, {
+    name: "0123456789",
+    bear: "bear"
+});
+</pre></code>
+</body>
+
+<script type="text/javascript">
+
+// 一个数据验证，需要什么功能呢？
+// 1、常用验证函数, max, min, null, email, url, phone 等
+// 2、需要验证后，有结果反馈
+// 3、选择全部验证，还是单独验证
+// 4、每条数据，应该有独立的验证规则
+// 5、通过，与不通过的回调
+
+function PipeValid(){
+    if(!this instanceof PipeValid){
+        return new PipeValid();
+    }
+    return this.init();
+};
+PipeValid.prototype = {
+    init: function(){
+        // 验证列表，集合
+        // 考虑到全部验证，需要按照顺序
+        // 而之后，又想独立单个验证
+        this._vlist = [];
+        this._map = {};
+
+        // 成功/错误处理函数
+        this._successCb = this._errorCb = function(){};
+
+        // 验证的数据
+        this._data = {};
+
+
+        // 把 _valid 的东西，全部放在当前对象中..
+        var obj = this._valid;
+        for(var i in obj){
+            this.add(i, obj[i]);
+        }
+
+        return this;
+    },
+    // 添加验证的数据
+    data: function(name, value){
+        if(typeof name === "object"){
+            var arr = [this._data];
+            arr.push.apply(arr, arguments);
+            this.extend.apply(this, arr);
+        }else if(arguments.length == 2){
+            this._data[name] = value;
+        }else if(arguments.length <= 0){
+            return this._data;
+        }
+    },
+    // 清空所有添加的数据
+    clear: function(){
+        this._data = {};
+    },
+    // 简单的对象合并
+    extend: function(){
+        var args = arguments, o1 = args[0];
+        if(args.length >= 2){
+            var list = [].slice.call(args, 1);
+            for(var i = 0, max = list.length; i < max; i++){
+                var obj = list[i] || {};
+                for(var j in obj){
+                    o1[j] = obj[j];
+                }
+            }
+        }
+        return o1;
+    },
+    // 添加检测函数
+    add: function(name, fn){
+        this[name] = (function(fn, fname){
+            var len = fn.length - 1;    // 当前函数参数数目，第一个是 value
+            return function(){
+                var args = [].slice.call(arguments, 0);
+
+                // 可能多放一个参数，理论上，应该无所谓的
+                this.check("", function(val){
+                    var list = args.slice(0, len);
+                    list.unshift(val);
+                    return fn.apply(this, list);
+                });
+
+                if( args.length > len ){
+                    this.check("", "", args[len]);
+                    // args.splice( len - args.length );
+                }
+
+                return this;
+            }
+        })(fn, name);
+        return this;
+    },
+    // 验证对象
+    _valid: {
+        // max, min, empty, email, url, phone, number, int, float
+        max: function(val, len){
+            return val && val.length <= len;
+        },
+        min: function(val, len){
+            return val && val.length >= len;
+        },
+        notEmpty: function(val){
+            return val && val.replace(/^\s*|\s*$/g, "") === "";
+        },
+        url: function(val){
+            return /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(val);
+        },
+        email: function(val){
+            return /^([a-z0-9_\.-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})$/.test(val);
+        },
+        number: function(val){
+            return !isNaN(Number(val));
+        },
+        int: function(val){
+            return /^\d+$/.test(val);
+        }
+    },
+    // 添加验证项
+    _addItem: function(name){
+        var map = this._map, item = map[name];
+        if( !item ){
+            item = map[name] = {
+                attr: name,
+                fn: [/*{fn:, args:[], error:}*/],
+                error: ""
+            };
+            this._vlist.push(item);
+        }
+        return item;
+    },
+    // 内置错误编译器
+    __cname: "",
+    __cobj: {},
+    __clist: [],
+    _compile: function(text, type){
+        // 先创建一个空对象
+        // 当三者齐全的时候，就编译为一个可执行的函数
+        if( type == "attr" && this.__cname != text ){
+            // 结束上一次的编译
+            // 如果还有错误的处理函数，则先保存
+            this._compileBeforeNext();
+
+            // 开始下一次的编译
+            this.__cobj = this._addItem(text);
+
+        }else {
+            // 获取当前编译的对象
+            // 当前的语句，都放倒 __clist 中
+            // 遇到 error 之后，结束一次语句声明
+            // 所有的错误判定函数，放在 __cobj.fn 数组中
+            var obj = this.__cobj, elist = this.__clist;
+            // 添加编译的数据
+            switch (type) {
+                case "fn":
+                    elist.push(text);
+                    break;
+                case "error":
+                    // 遇到 error，则结束一轮验证
+                    if( elist.length <= 0){
+                        obj.error = text;
+                    }else{
+                        elist.push(text);
+                        obj.fn.push(elist);
+                        // 清空之
+                        this.__clist = [];
+                    }
+                    break;
+            }
+        }
+    },
+    // 在编译下一个item前，进行处理
+    // @param autoError 是否自动添加错误提醒
+    _compileBeforeNext: function(autoError){
+        var list = this.__clist;
+        if(this.__clist.length > 0){
+            if(autoError && this.__cobj && typeof list[list.length - 1] !== "string"){
+                list.push("不通过:" + this.__cobj.attr);
+            }
+            this.__cobj && this.__cobj.fn && this.__cobj.fn.push(list);
+            this.__clist = [];
+        }
+    },
+    // 开始验证
+    start: function(isAll, data){
+        // 防止编译没完成
+        this._compileBeforeNext(true);
+
+        // 进行参数修正
+        var map = this._map;
+        if( typeof isAll === "object"){
+            data = isAll;
+            isAll = false;
+        }
+        // 跟已有数据，进行合并，
+        data = this.extend({}, this._data, data || {});
+
+        // 遍历所有属性
+        var errList = [];   // 错误列表
+        // 遍历 map
+        // TODO 这个遍历，没了顺序可言
+        for(var i in data){
+            var val = data[i];
+            if(map[i]){
+                var list = map[i].fn;
+                // 遍历 fn: [[], []]
+                for(var m = 0, mmax = list.length; m < mmax; m++){
+                    var nlist = list[m], error = nlist[nlist.length - 1], errorList;
+                    // 遍历 []
+                    for(var n = 0, nmax = nlist.length - 1; n < nmax; n++){
+                        var res = nlist[n](val);
+                        if( !res){
+                            // 是否要全部验证的?
+                            errorList = {name: i, error: error};
+                            if(!isAll){
+                                this._errorCb(errorList);
+                                return false;
+                            }else{
+                                break;
+                            }
+                        }
+                    }
+                    // 遍历 []
+
+                    // 如果是验证全部，而且发生了错误
+                    // 每个属性，第一次产生错误，就应该停止验证
+                    if(isAll && errorList){
+                        errList.push(errorList);
+                        break;
+                    }
+                }
+                // 遍历 fn: [[], []]
+            };
+        }
+        // 遍历 map
+
+        // 如果列表不为空，则呵呵
+        if(errList.length > 0){
+            this._errorCb(errList);
+            return false;
+        }
+        // 全部成功咧
+        this._successCb();
+
+        // 考虑下，是不是返回 Deferred 对象哈~
+        return this;
+    },
+    // 结果设置
+    then: function(text){
+        this.check("", "", text);
+        return this;
+    },
+    // 加入检测列表中
+    // @param attr 检测的属性名
+    // @param vfn  检测的函数
+    // @param text 错误信息
+    check: function(attr, vfn, text){
+        if(attr){
+            this._compile(attr, "attr");
+        }
+        if(vfn){
+            this._compile(vfn, "fn");
+        }
+        if(text){
+            this._compile(text, "error");
+        }
+        return this;
+    },
+    // 挑几个内置的对象，进行验证
+    // 验证的数据，必须已经在 _data 中
+    // and，第一个参数，可以是需要验证的额外数据
+    valid: function(data){
+        var list = [].slice.call(arguments, 0), isAll = false;
+        // 如果第一个参数，是个对象
+        if( typeof data == "object" ){
+            list.splice(0, 1);
+        }else{
+            data = {};
+        }
+
+        // 如果最后一个参数，是个Boolean值
+        if( typeof list[list.length - 1] == "boolean"){
+            isAll = list[list.length - 1];
+        }
+        // 如果第二个参数，是个列表
+        if( typeof list[0] == "object" && list[0].length > 0){
+            list = list[0];
+        }
+
+        // 把list中，所有的数据，转为需要验证个格式
+        // 当前的数据，和默认的数据，进行一轮合并
+        var item;
+        for(var i = 0, max = list.length; i <  max; i++){
+            item = list[i];
+            data[item] = data[item] || this._data[item];
+        }
+
+        this.start(isAll, data);
+
+    },
+    // 错误处理函数
+    error: function(cb){
+        this._errorCb = cb;
+        return this;
+    },
+    // 验证通过的回调
+    success: function(cb){
+        this._successCb = cb;
+        return this;
+    }
+}
+
+var valid = new PipeValid();
+valid.add("isBear", function(val){
+    return val == "bear";
+});
+
+valid.error(function(res){
+    console.log(res);
+});
+valid.success(function(){
+    console.log("验证成功..");
+});
+
+valid.check("name").min(4).then("名字最少4位").max(10, "不能超过10位");
+valid.check("bear").isBear("bear必须是bear").min(30).then("最小30字符");
+valid.check("age").int("必须是整数");
+
+// valid.check("password").notNull().then().min().max().error();
+
+// when 是不能实现的，因为无法知道什么时候，when才结束
+// valid.when("beforeAge", function(){
+//     return true;
+// }).check("age").int("年龄必须是整数");
+
+valid.data("age", "5566x");
+valid.data({
+    email: "39889@qq.com"
+}, {
+    address: "xxxyyyy",
+    school: "mmxx."
+});
+
+valid.start(false, {
+    name: "0123456789",
+    bear: "bear"
+});
+valid.valid({
+    name: "xx"
+}, ["name", "age"], true);
+// .done().fail();
+
+// 似乎start，已经把下面的，全做了...
+// 或许 valid ，可以验证内置数据..
+// valid.valid("", "", "");
+// valid.clear();
+
+
+
+// valid.check("name").max(10, "不能超过10位").min(3).then("不能少于3位");
+// valid.check("age", "notEmpty", "年龄不能为空");
+//
+// // valid.when("isTrue"|function(){
+// //
+// // }, "isTrueName").check("name").max().min().then("");
+//
+// valid.data("name", "y");
+// valid.data("age", "");
+// // 开始验证
+// valid.start(true, {
+//     email: "xxx@yy.com"
+// });
+// // 清空数据
+// valid.clear();
+//
+// // 只验证某个
+// valid.valid("name", "yy");
+//
+// // 验证多个，到底是委托一个新的valid，还是怎么才好呢？
+// // 为了节省内存，就不委托新对象了
+// valid.validMulit({
+//     name: "",
+//     age: 10
+// }, true);
+
+
+</script>
+
+</html>
