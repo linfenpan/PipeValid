@@ -34,12 +34,43 @@ PipeValid.prototype = {
     * @return {thenable object} 返回一个带有 then 回调的对象，如果验证内容，没有涉及异步，此对象的回调，将同步执行
    */
   start: function(data, restrict, checkAll) {
-
-    return {
-      then: function(resolve, reject) {
-        // resolve(true);
-        // reject([error1, [error2...]?]);
+    var validers = this.validers;
+    var validList = [];
+    keys(data, function(val, key) {
+      if (validers[key]) {
+        validList.push({ key: key, value: val });
       }
-    };
+    });
+
+    var thenable = new Thenable();
+
+    this._checkAll(validList, function callback(error) {
+      if (error) {
+        thenable.reject(error);
+      } else {
+        thenable.resolve();
+      }
+    });
+
+    return thenable;
+  },
+
+  _checkAll(validList, endFn) {
+    var self = this;
+    if (validList && validList.length > 0) {
+      var item = validList.shift();
+      var key = item.key;
+      var value = item.value;
+      var valider = self.validers[key];
+      valider.start(value, function next(error) {
+        if (error) {
+          endFn(error);
+        } else {
+          self._checkAll(validList, endFn);
+        }
+      }, false);
+    } else {
+      endFn(false);
+    }
   },
 };

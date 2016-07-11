@@ -7,6 +7,7 @@
 <body>
 
 <script src="../src/util.js"></script>
+<script src="../src/thenable.js"></script>
 <script src="../src/checker.js"></script>
 <script src="../src/item.js"></script>
 <script src="../src/pipeValid.js"></script>
@@ -16,13 +17,32 @@
   pipe.define('isBear', function(val) {
     return val === 'bear';
   });
+  pipe.define('badWord', function(val) {
+    return new Promise(function(resolve, reject) {
+      setTimeout(function() {
+        if (val.indexOf('bad') >= 0) {
+          reject();
+        } else {
+          resolve();
+        }
+      }, 1000);
+    });
+  });
 
-  checkName.min(3, '名字最多3位')
+  checkName.min(3, '名字最少3位')
     .then()
     .notEmpty('名字不能空哦')
-    .isBear('只能输入bear');
+    .end()
+    .max(20, '名字不大于20位');
 
-  pipe.start();
+  var result = pipe.start({
+    name: '宗熊'
+  });
+  result.then(function() {
+    console.log('全部成功');
+  }, function(error) {
+    console.error(error);
+  });
 </script>
 </body>
 </html>

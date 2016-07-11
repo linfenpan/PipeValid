@@ -39,12 +39,77 @@ Item.prototype = {
   },
 
   end: function() {
-    this.buildNext();
+    this._buildNext();
     return this;
   },
 
-  start: function(checkAll, next) {
+  start: function(value, next) {
+    // [
+    //   {
+    //     when: [ ['notEmpty'], ['max', [100]] ]
+    //     run: [ ['int', ['错误']], ['min', [10], ['错误']] ]
+    //   }
+    // ]
+    var conditions = this.conditions;
+
     return this;
+  },
+
+  _next: function() {
+
+  },
+
+  _parseCondition: function(condition, value) {
+    return {
+      fn: this[condition[0]],
+      params: [value].concat(condition[1] || []),
+      errors: condition[2]
+    };
+  },
+
+  _buildRunableThen: function(condition, value) {
+    var self = this;
+    var parse = self._parseCondition(condition, value);
+    var thenable = new Thenable();
+
+    thenable.run = function() {
+      var fn = parse.fn, params = parse.params, errors = parse.errors;
+      var result = fn.apply(self, params);
+      if (result.then) {
+        result.then(
+          function resolve() {
+            thenable.resolve();
+          },
+          function reject() {
+            thenable.reject(errors);
+          }
+        );
+      } else {
+        if (result) {
+          thenable.resolve(errors);
+        } else {
+          thenable.reject(errors);
+        }
+      }
+    };
+    return thenable;
+  },
+
+  _run: function(list, value) {
+    var self = this;
+    var thenables = [];
+    forEach(list, function(condition){
+      var thenable = self._buildRunableThen(condition, value);
+      thenable.run();
+      thenables.push(thenables);
+    });
+    return thenables;
+  },
+
+  _when: function(whens, value) {
+    return Thenable.all(
+      this._run(whens, value)
+    );
   },
 };
 
