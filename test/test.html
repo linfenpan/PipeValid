@@ -29,20 +29,23 @@
     });
   });
 
-  checkName.min(3, '名字最少3位')
+  checkName.notEmpty()
     .then()
-    .notEmpty('名字不能空哦')
-    .end()
-    .max(20, '名字不大于20位');
+    .min(3, '名字最少3位');
+  pipe.check('name')
+    .max(20, '名字不大于20位')
+    .badWord('有错误关键字');
 
   var result = pipe.start({
-    name: '宗熊'
+    name: 'da宗熊 bad'
   });
   result.then(function() {
     console.log('全部成功');
   }, function(error) {
     console.error(error);
   });
+  console.log(2);
+
 </script>
 </body>
 </html>

@@ -14,6 +14,7 @@ PipeValid.prototype = {
     * @param {Function} validFn 验证函数
    */
   define: function(name, validFn) {
+    checkers[name] = validFn;
     Item.prototype[name] = addChecker(name, validFn);
     return this;
   },
@@ -22,8 +23,10 @@ PipeValid.prototype = {
   // pipe.check('data.total');
   // TODO 如果可以拓展，用于验证数组，就棒棒的 pipe.check('list[0].name') 或 pipe.check('list[].name')
   check: function(key) {
-    return this.validers[key]
+    var valider = this.validers[key]
       || (this.validers[key] = new Item(key));
+    valider.end();
+    return valider;
   },
 
   /**
@@ -72,5 +75,5 @@ PipeValid.prototype = {
     } else {
       endFn(false);
     }
-  },
+  }
 };

@@ -50,67 +50,82 @@ Item.prototype = {
     //     run: [ ['int', ['错误']], ['min', [10], ['错误']] ]
     //   }
     // ]
-    var conditions = this.conditions;
-
-    return this;
-  },
-
-  _next: function() {
-
-  },
-
-  _parseCondition: function(condition, value) {
-    return {
-      fn: this[condition[0]],
-      params: [value].concat(condition[1] || []),
-      errors: condition[2]
-    };
-  },
-
-  _buildRunableThen: function(condition, value) {
     var self = this;
-    var parse = self._parseCondition(condition, value);
-    var thenable = new Thenable();
+    var conditions = this.conditions.slice(0);
+    this._startAll(value, conditions, function(errors) {
+      next.apply(self, errors);
+    });
+  },
 
-    thenable.run = function() {
-      var fn = parse.fn, params = parse.params, errors = parse.errors;
+  _startAll: function(value, conditions, next) {
+    var self = this;
+    if (conditions && conditions.length > 0) {
+      var condition = conditions.shift();
+      this._startNext(value, condition, function(errors) {
+        if (errors) {
+          next(errors);
+        } else {
+          self._startAll(value, conditions, next);
+        }
+      });
+    } else {
+      next();
+    }
+  },
+
+  _startNext: function(value, condition, next) {
+    var self = this;
+    this._run(value, condition.when.slice(0))
+      .then(function() {
+        self._run(value, condition.run.slice(0))
+          .then(function(){
+            next();
+          })
+          .catch(function(errors){
+            next(errors);
+          });
+      })
+      .catch(function() {
+        next();
+      });
+  },
+
+  // [ ['notEmpty'], ['max', [100]] ]
+  _run: function(value, checkers, thenable) {
+    var self = this;
+    thenable = thenable || new Thenable();
+
+    if (checkers && checkers.length > 0) {
+      var checker = checkers.shift();
+      var parser = self._parseCondition(checker, value);
+      var fn = parser.fn, params = parser.params, errors = parser.errors;
       var result = fn.apply(self, params);
-      if (result.then) {
+
+      if (result && result.then) {
         result.then(
-          function resolve() {
-            thenable.resolve();
-          },
-          function reject() {
-            thenable.reject(errors);
-          }
+          function(){ self._run(value, checkers, thenable); },
+          function(){ thenable.reject(errors); }
         );
       } else {
         if (result) {
-          thenable.resolve(errors);
+          self._run(value, checkers, thenable);
         } else {
           thenable.reject(errors);
         }
       }
-    };
+    } else {
+      thenable.resolve();
+    }
     return thenable;
   },
 
-  _run: function(list, value) {
-    var self = this;
-    var thenables = [];
-    forEach(list, function(condition){
-      var thenable = self._buildRunableThen(condition, value);
-      thenable.run();
-      thenables.push(thenables);
-    });
-    return thenables;
-  },
-
-  _when: function(whens, value) {
-    return Thenable.all(
-      this._run(whens, value)
-    );
-  },
+  _parseCondition: function(condition, value) {
+    return {
+      fn: checkers[condition[0]],
+      params: [value].concat(condition[1] || []),
+      errors: condition[2]
+    };
+  }
 };
 
 function combineChecker() {
