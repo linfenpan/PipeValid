@@ -1,5 +1,6 @@
 'use strict';
 /*
+  可以保存函数字符串，或函数本体
   [
     {
       when: [ ['notEmpty'], ['max', [100]] ]

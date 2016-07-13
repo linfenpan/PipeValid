@@ -72,4 +72,19 @@
     .define(function(val, 参数1){
       return val === '1002';
     }, 参数1, '这就是错误啊，怎么样?');
+
+  # 场景13:
+  valid.check('name')
+    .custom(function(val, next) {
+      // min 和 max，如果返回 false，都将抛出错误
+      if (min(3, '最小3位哦') && max(10, '最大10位')) {
+        if (val === 'bear') {
+          // pass
+          next();
+        } else {
+          // error
+          next('名字必须是bear!!');
+        }
+      }
+    });
 */
