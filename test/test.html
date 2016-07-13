@@ -6,6 +6,12 @@
 </head>
 <body>
 
+1. 没有必要多个error值，干掉吧!<br/>
+2. 能否 check('data.name') 呢? <br/>
+3. 能否 check('list[].name') 呢? <br/>
+4. 能否 check('list[0].name') 呢? <br/>
+5. checkAll 功能还没有实现<br/>
+
 <script src="../src/util.js"></script>
 <script src="../src/thenable.js"></script>
 <script src="../src/checker.js"></script>
@@ -39,12 +45,13 @@
   var result = pipe.start({
     name: 'da宗熊 bad'
   });
-  result.then(function() {
-    console.log('全部成功');
-  }, function(error) {
-    console.error(error);
+  result.always(function() {
+    if (result.pass) {
+      console.log('全部成功');
+    } else {
+      console.error(result.error);
+    }
   });
-  console.log(2);
 
 </script>
 </body>

@@ -48,7 +48,11 @@ PipeValid.prototype = {
     var thenable = new Thenable();
 
     this._checkAll(validList, function callback(error) {
+      thenable.pass = !error;
       if (error) {
+        thenable.error = error;
+        // @notice 虽然不知道有没有场景会用到多个错误，但是留着吧
+        thenable.errors = toArray(arguments);
         thenable.reject(error);
       } else {
         thenable.resolve();
@@ -60,20 +64,22 @@ PipeValid.prototype = {
 
   _checkAll(validList, endFn) {
     var self = this;
-    if (validList && validList.length > 0) {
-      var item = validList.shift();
-      var key = item.key;
-      var value = item.value;
-      var valider = self.validers[key];
-      valider.start(value, function next(error) {
-        if (error) {
-          endFn(error);
-        } else {
-          self._checkAll(validList, endFn);
-        }
-      }, false);
-    } else {
-      endFn(false);
-    }
+    recurList(validList, {
+      next: function(item, next) {
+        var key = item.key;
+        var value = item.value;
+        var valider = self.validers[key];
+        valider.start(value, function callback(errors) {
+          if (errors) {
+            endFn.apply(self, arguments);
+          } else {
+            next();
+          }
+        });
+      },
+      callback: function() {
+        endFn.call(self, false);
+      }
+    });
   }
 };

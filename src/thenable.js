@@ -61,6 +61,10 @@ Thenable.prototype = {
     return this;
   },
 
+  always: function(fn) {
+    return this.then(fn, fn);
+  },
+
   catch: function(fn) {
     return this.then(null, fn);
   }

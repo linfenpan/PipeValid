@@ -43,7 +43,7 @@ Item.prototype = {
     return this;
   },
 
-  start: function(value, next) {
+  start: function(value, callback) {
     // [
     //   {
     //     when: [ ['notEmpty'], ['max', [100]] ]
@@ -52,25 +52,21 @@ Item.prototype = {
     // ]
     var self = this;
     var conditions = this.conditions.slice(0);
-    this._startAll(value, conditions, function(errors) {
-      next.apply(self, errors);
-    });
-  },
 
-  _startAll: function(value, conditions, next) {
-    var self = this;
-    if (conditions && conditions.length > 0) {
-      var condition = conditions.shift();
-      this._startNext(value, condition, function(errors) {
-        if (errors) {
-          next(errors);
-        } else {
-          self._startAll(value, conditions, next);
-        }
-      });
-    } else {
-      next();
-    }
+    recurList(conditions, {
+      next: function(condition, next) {
+        self._startNext(value, condition, function(errors) {
+          if (errors) {
+            callback.apply(self, errors);
+          } else {
+            next();
+          }
+        });
+      },
+      callback: function() {
+        callback.call(self);
+      }
+    });
   },
 
   _startNext: function(value, condition, next) {
@@ -91,31 +87,33 @@ Item.prototype = {
   },
 
   // [ ['notEmpty'], ['max', [100]] ]
-  _run: function(value, checkers, thenable) {
+  _run: function(value, checkers) {
     var self = this;
-    thenable = thenable || new Thenable();
+    var thenable = new Thenable();
 
-    if (checkers && checkers.length > 0) {
-      var checker = checkers.shift();
-      var parser = self._parseCondition(checker, value);
-      var fn = parser.fn, params = parser.params, errors = parser.errors;
-      var result = fn.apply(self, params);
+    recurList(checkers, {
+      next: function(checker, next) {
+        var parser = self._parseCondition(checker, value);
+        var fn = parser.fn, params = parser.params, errors = parser.errors;
+        var result = fn.apply(self, params);
 
-      if (result && result.then) {
-        result.then(
-          function(){ self._run(value, checkers, thenable); },
-          function(){ thenable.reject(errors); }
-        );
-      } else {
-        if (result) {
-          self._run(value, checkers, thenable);
+        if (result && result.then) {
+          result.then(
+            next, function(){ thenable.reject(errors); }
+          );
         } else {
-          thenable.reject(errors);
+          if (result) {
+            next();
+          } else {
+            thenable.reject(errors);
+          }
         }
+      },
+      callback: function() {
+        thenable.resolve();
       }
-    } else {
-      thenable.resolve();
-    }
+    });
+
     return thenable;
   },
 
