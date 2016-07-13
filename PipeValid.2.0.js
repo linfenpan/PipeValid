@@ -2,9 +2,8 @@
   该有什么功能呢?
   var valid = new PipeValid();
   定义合适检查该属性:
-  1. 有定义checker的
-  2. 被检测对象，存在该属性的
-  3. 被强制指定检测的
+  1. 有定义checker定义，并且存在该属性的
+  2. 强制指定验证的
 
   √ # 场景1:
   valid.check('age')
@@ -56,4 +55,21 @@
   # 场景10:
   valid.check('list[].name').notEmpty('xxx');
   列表属性中，所有某个子属性，都不能为空
+
+  # 场景11:
+  添加简单的验证:
+  valid.check({
+    name: [
+      ['notEmpty', '不能为空'],
+      ['min', 3, '最少3位']
+    ],
+    age: ['int', '必须是整数']
+  });
+
+  # 场景12:
+  中途插入其他验证
+  valid.check('name')
+    .define(function(val, 参数1){
+      return val === '1002';
+    }, 参数1, '这就是错误啊，怎么样?');
 */
