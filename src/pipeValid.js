@@ -36,12 +36,17 @@ PipeValid.prototype = {
     * @param {Boolean} checkAll，是否需要验证全部数据
     * @return {thenable object} 返回一个带有 then 回调的对象，如果验证内容，没有涉及异步，此对象的回调，将同步执行
    */
-  start: function(data, restrict, checkAll) {
+  start: function(data, restrict, isCheckAll) {
+    if (!isArray(restrict)) {
+      isCheckAll = restrict;
+      restrict = [];
+    }
+
     var validers = this.validers;
     var validList = [];
-    keys(data, function(val, key) {
-      if (validers[key]) {
-        validList.push({ key: key, value: val });
+    keys(validers, function(key, val) {
+      if (key in data) {
+        validList.push({ key: key, value: data[key] });
       }
     });
 
@@ -50,35 +55,44 @@ PipeValid.prototype = {
     this._checkAll(validList, function callback(error) {
       thenable.pass = !error;
       if (error) {
-        thenable.error = error;
-        // @notice 虽然不知道有没有场景会用到多个错误，但是留着吧
-        thenable.errors = toArray(arguments);
+        if (isCheckAll) {
+          thenable.error = error;
+        } else {
+          thenable.error = error.error;
+          thenable.key = error.key;
+        }
         thenable.reject(error);
       } else {
         thenable.resolve();
       }
-    });
+    }, isCheckAll);
 
     return thenable;
   },
 
-  _checkAll(validList, endFn) {
+  _checkAll(validList, endFn, isCheckAll) {
     var self = this;
+    var errorList = [];
     recurList(validList, {
       next: function(item, next) {
         var key = item.key;
         var value = item.value;
         var valider = self.validers[key];
-        valider.start(value, function callback(errors) {
-          if (errors) {
-            endFn.apply(self, arguments);
+        valider.start(value, function callback(error) {
+          if (error) {
+            if (isCheckAll) {
+              errorList.push(error);
+              next();
+            } else {
+              endFn.call(self, error);
+            }
           } else {
             next();
           }
         });
       },
       callback: function() {
-        endFn.call(self, false);
+        endFn.call(self, errorList.length > 0 ? errorList : false);
       }
     });
   }

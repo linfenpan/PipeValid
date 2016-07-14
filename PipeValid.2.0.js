@@ -21,15 +21,17 @@
   valid.asyncStart(data); -> 返回一个 promise/a 规范的对象
   --> 更改为 valid.start 必定返回一个 thenable 对象，如果 check 的链条中，有异步，则是异步的，没有，则同步
 
-  # 场景3:
+  √ # 场景3:
   var isAllError = true;
   valid.start(data, isAllError);
+  --> 返回的 thenable 对象的 error 属性，将会是个数组
 
   # 场景4:
-  valid.start(['age', 'name']); -> 仅验证 age 和 name 两个属性
+  valid.start(data, ['age', 'name']); -> 仅验证 age 和 name 两个属性
 
-  # 场景5:
+  × # 场景5:
   valid.asyncStart(['age', 'name']); -> 仅验证 age 和 name 两个属性
+  -> 更改为，valid.start() 绝对返回一个thenable对象
 
   √ # 场景6:
   valid.define('isBear', function(value){
@@ -66,7 +68,7 @@
     age: ['int', '必须是整数']
   });
 
-  # 场景12:
+  √ # 场景12:
   中途插入其他验证
   valid.check('name')
     .define(function(val, 参数1){

@@ -4,7 +4,7 @@
   [
     {
       when: [ ['notEmpty'], ['max', [100]] ]
-      run: [ ['int', ['错误']], ['min', [10], ['错误']] ]
+      run: [ ['int', '错误'], ['min', [10], '错误'] ]
     }
   ]
 */
@@ -33,6 +33,18 @@ Item.prototype = {
     this.conditions.push(current);
   },
 
+  define: function(fn) {
+    var args = toArray(arguments).slice(1);
+    var error = args.splice(fn.length - 1)[0];
+    this.current.run.push([fn, args, error]);
+    return this;
+  },
+
+  custom: function(fn) {
+    // TODO 本期终极设想函数..
+    return this;
+  },
+
   then: function() {
     var current = this.current;
     current.when = current.run.splice(0);
@@ -56,9 +68,9 @@ Item.prototype = {
 
     recurList(conditions, {
       next: function(condition, next) {
-        self._startNext(value, condition, function(errors) {
-          if (errors) {
-            callback.apply(self, errors);
+        self._startNext(value, condition, function(error) {
+          if (error) {
+            callback(error);
           } else {
             next();
           }
@@ -78,9 +90,7 @@ Item.prototype = {
           .then(function(){
             next();
           })
-          .catch(function(errors){
-            next(errors);
-          });
+          .catch(next);
       })
       .catch(function() {
         next();
@@ -95,18 +105,22 @@ Item.prototype = {
     recurList(checkers, {
       next: function(checker, next) {
         var parser = self._parseCondition(checker, value);
-        var fn = parser.fn, params = parser.params, errors = parser.errors;
+        var fn = parser.fn,
+            key = parser.key,
+            error = parser.error || key,
+            params = parser.params;
         var result = fn.apply(self, params);
+        var rejectResult = { key: key, error: error };
 
         if (result && result.then) {
           result.then(
-            next, function(){ thenable.reject(errors); }
+            next, function(){ thenable.reject(rejectResult); }
           );
         } else {
           if (result) {
             next();
           } else {
-            thenable.reject(errors);
+            thenable.reject(rejectResult);
           }
         }
       },
@@ -119,17 +133,19 @@ Item.prototype = {
   },
 
   _parseCondition: function(condition, value) {
+    var fn = condition[0];
     return {
-      fn: checkers[condition[0]],
+      key: fn,
+      fn: isFunction(fn) ? fn : checkers[fn],
       params: [value].concat(condition[1] || []),
-      errors: condition[2]
+      error: condition[2]
     };
   }
 };
 
 function combineChecker() {
   var proto = Item.prototype;
-  keys(checkers, function(fn, key){
+  keys(checkers, function(key, fn){
     proto[key] = addChecker(key, fn);
   });
 }
@@ -137,8 +153,8 @@ function combineChecker() {
 function addChecker(key, fn) {
   return function() {
     var args = toArray(arguments);
-    var errs = args.splice(Math.min(args.length, fn.length - 1));
-    this.current.run.push([key, args, errs]);
+    var err = args.splice(Math.min(args.length, fn.length - 1))[0];
+    this.current.run.push([key, args, err]);
     return this;
   };
 }

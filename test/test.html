@@ -6,7 +6,7 @@
 </head>
 <body>
 
-1. 没有必要多个error值，干掉吧!<br/>
+√ 1. 没有必要多个error值，干掉吧!<br/>
 2. 能否 check('data.name') 呢? <br/>
 3. 能否 check('list[].name') 呢? <br/>
 4. 能否 check('list[0].name') 呢? <br/>
@@ -20,6 +20,7 @@
 <script>
   var pipe = new PipeValid();
   var checkName = pipe.check('name');
+
   pipe.define('isBear', function(val) {
     return val === 'bear';
   });
@@ -40,11 +41,20 @@
     .min(3, '名字最少3位');
   pipe.check('name')
     .max(20, '名字不大于20位')
-    .badWord('有错误关键字');
+    .define(function(val, arg1){
+      console.log('define时，附带参数通过~~', arg1);
+      return val.indexOf('熊') >= 0;
+    }, '参数1', '必须带上"熊"字!!')
+    .badWord('有错误关键字，名字不能带有"bad"');
+
+  pipe.check('age')
+    .int('年龄必须是整数');
 
   var result = pipe.start({
-    name: 'da宗熊 bad'
-  });
+    name: 'da宗熊 bad',
+    age: '123'
+  }, false);
+
   result.always(function() {
     if (result.pass) {
       console.log('全部成功');

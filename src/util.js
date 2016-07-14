@@ -3,6 +3,22 @@ function noop() {
   // nothing
 }
 
+function type(obj) {
+  return Object.prototype.toString
+    .call(obj)
+    .split(' ')[1]
+    .slice(0, -1)
+    .toLowerCase();
+}
+
+function isFunction(fn) {
+  return type(fn) === 'function';
+}
+
+function isArray(arr) {
+  return type(arr) === 'array';
+}
+
 function isEmptyObject(obj) {
   for (var i in obj) {
     if (obj.hasOwnProperty(i)) {
@@ -19,7 +35,7 @@ function toArray(obj) {
 function keys(obj, callback) {
   for (var key in obj) {
     if (obj.hasOwnProperty(key)) {
-      callback.call(obj, obj[key], key);
+      callback.call(obj, key, obj[key]);
     }
   }
 }
