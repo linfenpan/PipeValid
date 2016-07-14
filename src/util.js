@@ -28,8 +28,20 @@ function isEmptyObject(obj) {
   return true;
 }
 
+function trim(str) {
+  return str.trim
+    ? str.trim()
+    : str.replace(/^\s*|\s*$/, '');
+}
+
 function toArray(obj) {
   return [].slice.call(obj, 0);
+}
+
+function extend(obj1, obj2) {
+  keys(obj2, function(key, value) {
+    obj1[key] = value;
+  });
 }
 
 function keys(obj, callback) {
@@ -59,4 +71,64 @@ function recurList(list, options) {
   } else {
     callback();
   }
+}
+
+// compileToAttr({ name: 123 }, 'name') --> [ {value: 123} ]
+// compileToAttr([{ name: 123 }], '[].name'); --> [ {value: 123} ]
+// compileToAttr([{ name: 123 }], '[0].name'); --> [ {value: 123} ]
+// compileToAttr([{ name: 123 }], '[].age'); --> [ {nonexist: true} ]
+var COMPILE_TO_ATTR_REG = /(\[\d*\]|\.)/;
+var COMPILE_TO_ATTR_IS_LIST = /^\[(\d*)\]$/;
+function compileToAttr(data, str, _compileList) {
+  var strList = _compileList || str.split(COMPILE_TO_ATTR_REG);
+  var isAttrExist = true;
+  var sentence;
+
+  var next = function(key) {
+    if (key in data) {
+      data = data[key];
+    } else {
+      isAttrExist = false;
+    }
+  };
+
+  while(strList.length) {
+    sentence = trim(strList.shift());
+    if (!sentence) {
+      continue;
+    }
+
+    if (COMPILE_TO_ATTR_IS_LIST.test(sentence)) {
+      // 列表
+      var matches = sentence.match(COMPILE_TO_ATTR_IS_LIST);
+      var listIndex = matches[1];
+
+      if (listIndex) {
+        next(listIndex);
+      } else {
+        // 展开列表，继续寻找
+        if (isArray(data)) {
+          var _list = [];
+
+          forEach(data, function(_data) {
+            var _result = compileToAttr(_data, null, strList.slice(0));
+            _list.push.apply(_list, _result);
+          });
+
+          return _list;
+        } else {
+          isAttrExist = false;
+        }
+      }
+    } else {
+      // 往下寻找
+      sentence !== '.' && next(sentence);
+    }
+
+    if (!isAttrExist) {
+      break;
+    }
+  }
+
+  return isAttrExist ? [{value: data}] : [{ nonexist: true }];
 }

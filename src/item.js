@@ -76,6 +76,7 @@ Item.prototype = {
           }
         });
       },
+
       callback: function() {
         callback.call(self);
       }
@@ -124,6 +125,7 @@ Item.prototype = {
           }
         }
       },
+      
       callback: function() {
         thenable.resolve();
       }

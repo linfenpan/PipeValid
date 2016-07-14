@@ -50,10 +50,25 @@
   pipe.check('age')
     .int('年龄必须是整数');
 
+  pipe.check('address')
+    .notEmpty('地址不能空哦');
+
+  pipe.check('list[].name')
+    .min(3, '列表的名字，最少3位数');
+
   var result = pipe.start({
-    name: 'da宗熊 bad',
-    age: '123'
-  }, false);
+    name: 'da宗熊',
+    age: '123',
+    adress: '河东',
+    list: [
+      { name: '最少' }
+    ]
+  });
+
+  // var result = pipe.start({
+  //   name: 'da宗熊 bad',
+  //   age: '123d'
+  // }, ['name', 'age', 'address'], true);
 
   result.always(function() {
     if (result.pass) {

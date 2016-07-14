@@ -26,7 +26,7 @@
   valid.start(data, isAllError);
   --> 返回的 thenable 对象的 error 属性，将会是个数组
 
-  # 场景4:
+  √ # 场景4:
   valid.start(data, ['age', 'name']); -> 仅验证 age 和 name 两个属性
 
   × # 场景5:
@@ -46,15 +46,15 @@
   valid.check('name').isBear();
   --> 考虑到代码压缩，这个功能放弃
 
-  # 场景8:
+  √ # 场景8:
   valid.check('data.name').notEmpty('xxx');
   属性对象内的某个属性，不能是空
 
-  # 场景9:
+  √ # 场景9:
   valid.check('list[1].name').notEmpty('xxx');
   列表属性中的子属性，不能是空
 
-  # 场景10:
+  √ # 场景10:
   valid.check('list[].name').notEmpty('xxx');
   列表属性中，所有某个子属性，都不能为空
 

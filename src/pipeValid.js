@@ -37,20 +37,15 @@ PipeValid.prototype = {
     * @return {thenable object} 返回一个带有 then 回调的对象，如果验证内容，没有涉及异步，此对象的回调，将同步执行
    */
   start: function(data, restrict, isCheckAll) {
+    data = data || {};
+
     if (!isArray(restrict)) {
       isCheckAll = restrict;
       restrict = [];
     }
 
-    var validers = this.validers;
-    var validList = [];
-    keys(validers, function(key, val) {
-      if (key in data) {
-        validList.push({ key: key, value: data[key] });
-      }
-    });
-
     var thenable = new Thenable();
+    var validList = this._obtainValidList(data, restrict);
 
     this._checkAll(validList, function callback(error) {
       thenable.pass = !error;
@@ -58,8 +53,7 @@ PipeValid.prototype = {
         if (isCheckAll) {
           thenable.error = error;
         } else {
-          thenable.error = error.error;
-          thenable.key = error.key;
+          extend(thenable, error);
         }
         thenable.reject(error);
       } else {
@@ -73,13 +67,17 @@ PipeValid.prototype = {
   _checkAll(validList, endFn, isCheckAll) {
     var self = this;
     var errorList = [];
+
     recurList(validList, {
       next: function(item, next) {
         var key = item.key;
         var value = item.value;
+        var index = item.index;
         var valider = self.validers[key];
+
         valider.start(value, function callback(error) {
           if (error) {
+            error.index = index;
             if (isCheckAll) {
               errorList.push(error);
               next();
@@ -91,9 +89,48 @@ PipeValid.prototype = {
           }
         });
       },
+
       callback: function() {
         endFn.call(self, errorList.length > 0 ? errorList : false);
       }
     });
+  },
+
+  _obtainValidList(data, restrict) {
+    var self = this;
+    var validers = this.validers;
+    var validList = [];
+    var addToList = function(list) {
+      validList.push.apply(validList, list);
+    };
+
+    if (restrict.length > 0) {
+      forEach(restrict, function(key) {
+        if (validers[key]) {
+          addToList(self._explainAttrToList(data, key, false));
+        }
+      });
+    } else {
+      keys(validers, function(key, val) {
+        addToList(self._explainAttrToList(data, key, true));
+      });
+    }
+
+    return validList;
+  },
+
+  _explainAttrToList: function(data, key, ignorEmpty) {
+    var list = [];
+    forEach(compileToAttr(data, key), function(item, index) {
+      var itemAdded = { key: key, value: item.value, index: index };
+      if (item.nonexist) {
+        if (!ignorEmpty) {
+          list.push(itemAdded);
+        }
+      } else {
+        list.push(itemAdded);
+      }
+    });
+    return list;
   }
 };
