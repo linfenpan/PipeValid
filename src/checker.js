@@ -1,3 +1,5 @@
+'use strict';
+
 var checkers = {
   // max, min, empty, email, url, phone, number, int, float
   max: function(val, len){

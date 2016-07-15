@@ -136,7 +136,3 @@ function compileToAttr(data, str, _compileList) {
 
   return isAttrExist ? [{value: data}] : [{ nonexist: true }];
 }
-// 
-// console.log(
-//   compileToAttr({data: {code: 1}}, 'data.code')[0].value
-// );

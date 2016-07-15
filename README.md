@@ -3,6 +3,7 @@
 最新版本：2.0.0
 优势：把繁琐的数据验证，简化为简单的链式配置
 备注：含前面版本所有功能，不过 start 的参数，位置更改了
+历史版本：https://github.com/linfenpan/fp-histroy/tree/master/pipe-valid
 
 ## 小例子
 
