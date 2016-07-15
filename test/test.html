@@ -56,6 +56,18 @@
   pipe.check('list[].name')
     .min(3, '列表的名字，最少3位数');
 
+  // pipe.rule({
+  //   name: [
+  //     'max', 20, '名字最多20个字'
+  //   ],
+  //   age: [
+  //     ['notEmpty', '年龄不能空'],
+  //     ['then'],
+  //     ['int', '年龄必须是整数'],
+  //     ['max', 2, '年龄最多两位']
+  //   ]
+  // });
+
   var result = pipe.start({
     name: 'da宗熊',
     age: '123',

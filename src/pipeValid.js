@@ -21,12 +21,42 @@ PipeValid.prototype = {
 
   // pipe.check('age')
   // pipe.check('data.total');
-  // TODO 如果可以拓展，用于验证数组，就棒棒的 pipe.check('list[0].name') 或 pipe.check('list[].name')
   check: function(key) {
-    var valider = this.validers[key]
-      || (this.validers[key] = new Item(key));
-    valider.end();
-    return valider;
+    if (isObject(key)) {
+      return this.rule(key);
+    } else {
+      var valider = this.validers[key]
+        || (this.validers[key] = new Item(key));
+      valider.end();
+      return valider;
+    }
+  },
+
+  // 定义简单的验证规则
+  // { name: [], age: ['int', '必须是整形'] }
+  rule: function(obj) {
+    var self = this;
+    // args = ['min', 2, '最少两位']
+    var addToChecker = function(checker, args) {
+      checker[args[0]].apply(checker, args.slice(1));
+    };
+
+    keys(obj, function(key, arr) {
+      if (isArray(arr)) {
+        var checker = self.check(key);
+        checker._reset();
+
+        if (isArray(arr[0])) {
+          forEach(arr, function(args) {
+            addToChecker(checker, args);
+          });
+        } else {
+          addToChecker(checker, arr);
+        }
+      }
+    });
+
+    return this;
   },
 
   /**

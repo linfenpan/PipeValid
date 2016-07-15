@@ -10,15 +10,19 @@
 */
 
 function Item() {
-  // 条件列表
-  this.conditions = [];
-  // 当前的条件
-  this.current = {};
-
-  this._buildNext();
+  this._reset();
 }
 
 Item.prototype = {
+  _reset: function() {
+    // 条件列表
+    this.conditions = [];
+    // 当前的条件
+    this.current = {};
+    // 构建current和conditions的联系
+    this._buildNext();
+  },
+
   _buildNext: function() {
     var current = this.current;
 
@@ -125,7 +129,7 @@ Item.prototype = {
           }
         }
       },
-      
+
       callback: function() {
         thenable.resolve();
       }

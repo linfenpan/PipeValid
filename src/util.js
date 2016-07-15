@@ -15,6 +15,10 @@ function isFunction(fn) {
   return type(fn) === 'function';
 }
 
+function isObject(obj) {
+  return type(obj) === 'object';
+}
+
 function isArray(arr) {
   return type(arr) === 'array';
 }

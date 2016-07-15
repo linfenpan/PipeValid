@@ -58,7 +58,7 @@
   valid.check('list[].name').notEmpty('xxx');
   列表属性中，所有某个子属性，都不能为空
 
-  # 场景11:
+  √ # 场景11:
   添加简单的验证:
   valid.check({
     name: [
