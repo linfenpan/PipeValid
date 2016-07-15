@@ -12,6 +12,9 @@
 √ 4. 能否 check('list[0].name') 呢? <br/>
 √ 5. checkAll 功能还没有实现<br/>
 
+<!-- 不需要依赖jquery，不过在ie测试时，用到了$.Deferred -->
+<script src="//cdn.bootcss.com/jquery/1.8.3/jquery.js"></script>
+
 <script src="../src/util.js"></script>
 <script src="../src/thenable.js"></script>
 <script src="../src/checker.js"></script>
@@ -88,15 +91,15 @@ cc.push({
     var pipe = new PipeValid();
 
     pipe.define('ansyExistId', function(val) {
-      return new Promise(function(resolve, reject){
-        setTimeout(function(){
-          if (val.indexOf('x') === 0) {
-            resolve();
-          } else {
-            reject();
-          }
-        }, 200);
-      });
+      var deferred = $.Deferred();
+      setTimeout(function(){
+        if (val.indexOf('x') === 0) {
+          deferred.resolve();
+        } else {
+          deferred.reject();
+        }
+      }, 200);
+      return deferred;
     });
 
     pipe.check('id')
@@ -182,7 +185,7 @@ cc.push({
 
     var result = pipe.start({
       data: {
-        code: 0,
+        code: 0
       },
       list: [
         { name: 'da宗熊' },
@@ -190,7 +193,7 @@ cc.push({
       ]
     });
 
-    var error = result.error;
+    var error = result.error || {};
     if (error.code === 1) {
       next();
     } else {
@@ -239,12 +242,12 @@ function loopTest(cc) {
   var item = cc.shift();
 
   if (!item) {
-    return console.log('%call success', 'color:green');
+    return logInfo('call success');
   }
 
   index++;
   var desc = item.desc || index;
-  console.log(`%c${index}.${desc}`, 'color:green');
+  logInfo(index + '.' + desc);
 
   if (item.run) {
     var shouldStopRunner = false;
@@ -252,7 +255,7 @@ function loopTest(cc) {
     clearTimeout(timer);
     timer = setTimeout(function(){
       shouldStopRunner = true;
-      console.log(`  %ctimeout`, 'color:red');
+      logError('  timeout');
     }, item.timeout || timeout);
 
     try {
@@ -263,16 +266,42 @@ function loopTest(cc) {
         }
 
         if (error) {
-          console.log(`  %c${error}`, 'color:red');
+          logError('  ' + error);
         } else {
-          console.log('%c  pass', 'color:green');
+          logInfo('  pass');
           loopTest(cc);
         }
       });
     } catch (e) {
       clearTimeout(timer);
-      console.log(` %c${e.message}`, 'color:red');
+      logError('  ' + e.message);
+      throw e;
     }
+  }
+}
+
+var $logger;
+function logForIE(text, color) {
+  if (!$logger) {
+    $logger = document.createElement('div');
+    document.getElementsByTagName('body')[0].appendChild($logger);
+  }
+  $logger.innerHTML += '<div style="color:'+ color +'">'+ text +'</div>'
+}
+
+function logInfo(text) {
+  if (window.console) {
+    console.log('%c' + text, 'color:green');
+  } else {
+    logForIE(text, 'green');
+  }
+}
+
+function logError(text) {
+  if (window.console) {
+    console.log('%c' + text, 'color:red');
+  } else {
+    logForIE(text, 'red');
   }
 }
 

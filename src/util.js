@@ -81,10 +81,10 @@ function recurList(list, options) {
 // compileToAttr([{ name: 123 }], '[].name'); --> [ {value: 123} ]
 // compileToAttr([{ name: 123 }], '[0].name'); --> [ {value: 123} ]
 // compileToAttr([{ name: 123 }], '[].age'); --> [ {nonexist: true} ]
-var COMPILE_TO_ATTR_REG = /(\[\d*\]|\.)/;
+var COMPILE_TO_ATTR_REG = /([^.\[\]]+)|(\[\d*\]|\.)/g;
 var COMPILE_TO_ATTR_IS_LIST = /^\[(\d*)\]$/;
 function compileToAttr(data, str, _compileList) {
-  var strList = _compileList || str.split(COMPILE_TO_ATTR_REG);
+  var strList = _compileList || str.match(COMPILE_TO_ATTR_REG);
   var isAttrExist = true;
   var sentence;
 
@@ -136,3 +136,7 @@ function compileToAttr(data, str, _compileList) {
 
   return isAttrExist ? [{value: data}] : [{ nonexist: true }];
 }
+// 
+// console.log(
+//   compileToAttr({data: {code: 1}}, 'data.code')[0].value
+// );

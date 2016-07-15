@@ -43,9 +43,10 @@ Item.prototype = {
   },
 
   define: function(fn) {
+    var fnLen = fn.length - 1;
     var args = toArray(arguments).slice(1);
-    var error = args.splice(fn.length - 1)[0];
-    this.current.run.push([fn, args, error]);
+    var error = args.slice(fnLen)[0];
+    this.current.run.push([fn, args.slice(0, fnLen), error]);
     return this;
   },
 
@@ -87,7 +88,8 @@ Item.prototype = {
 
   then: function() {
     var current = this.current;
-    current.when = current.run.splice(0);
+    current.when = current.run.slice(0);
+    current.run = [];
     return this;
   },
 
@@ -125,10 +127,8 @@ Item.prototype = {
         self._run(value, condition.run.slice(0))
           .then(function(){
             next();
-          })
-          .catch(next);
-      })
-      .catch(function() {
+          })["catch"](next);
+      })["catch"](function() {
         next();
       });
   },
@@ -226,9 +226,10 @@ function addChecker(key, fn) {
   }
 
   return function() {
+    var fnLen = fn.length - 1;
     var args = toArray(arguments);
-    var err = args.splice(Math.min(args.length, fn.length - 1))[0];
-    this.current.run.push([key, args, err]);
+    var err = args.slice(Math.min(args.length, fnLen))[0];
+    this.current.run.push([key, args.slice(0, fnLen), err]);
     return this;
   };
 }

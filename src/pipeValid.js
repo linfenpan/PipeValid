@@ -82,7 +82,7 @@ PipeValid.prototype = {
     return thenable;
   },
 
-  _checkAll(validList, endFn, isCheckAll) {
+  _checkAll: function(validList, endFn, isCheckAll) {
     var self = this;
     var errorList = [];
 
@@ -114,7 +114,7 @@ PipeValid.prototype = {
     });
   },
 
-  _obtainValidList(data, restrict) {
+  _obtainValidList: function(data, restrict) {
     var self = this;
     var validers = this.validers;
     var validList = [];
