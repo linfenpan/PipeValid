@@ -4,11 +4,35 @@ const pkg = require('./package.json');
 const gulp = require('gulp');
 const concat = require('gulp-concat');
 const header = require('gulp-header');
+const footer = require('gulp-footer');
 const minify = require('gulp-minify');
 const webpack = require('webpack-stream');
-const wait = require('gulp-wait');
 
-const banner = `/*! ${pkg.name}-${pkg.version} by ${pkg.author} ${pkg.license} ${pkg.homepage}*/
+// 进行 umd 打包
+const headerText = `/*! ${pkg.name}-${pkg.version} by ${pkg.author} ${pkg.license} ${pkg.homepage}*/
+(function (root, factory) {
+  if (typeof define === 'function') {
+    if (define.amd) {
+      // AMD
+      define(factory);
+    } else {
+      // CMD
+      define(function(require, exports, module) {
+        module.exports = factory();
+      });
+    }
+  } else if (typeof exports === 'object') {
+    // Node, CommonJS之类的
+    module.exports = factory();
+  } else {
+    // 浏览器全局变量(root 即 window)
+    root.PipeValid = factory();
+  }
+}(this, function ($) {
+`;
+const footerText = `
+  return PipeValid;
+}));
 `;
 
 gulp.task('concat', () => {
@@ -20,43 +44,18 @@ gulp.task('concat', () => {
       './src/PipeValid.js'
     ])
     .pipe(concat('index.js'))
-    .pipe(header(banner))
+    .pipe(header(headerText))
+    .pipe(footer(footerText))
+    .pipe(
+      minify({
+        preserveComments: 'some'
+      })
+    )
     .pipe(
       gulp.dest('./')
     );
   return stream;
 });
 
-gulp.task('webpack', (cb) => {
-  // 等待文件创建完成
-  setTimeout(function(){
-    gulp.src('./index.js')
-      .pipe(
-        webpack({
-          entry: {
-            index: './index.js'
-          },
-          output: {
-            filename: 'index.js'
-          }
-        })
-      )
-      .pipe(
-        gulp.dest('./')
-      );
-    cb();
-  }, 500);
-});
 
-gulp.task('default', ['concat', 'webpack']);
-
-    // .pipe(minify())
-    // .pipe(
-    //   webpack({
-    //     entry: 'index.js',
-    //     output: {
-    //       filename: 'index.js'
-    //     }
-    //   })
-    // )
-// });
+gulp.task('default', ['concat']);

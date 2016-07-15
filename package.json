@@ -25,9 +25,9 @@
   "devDependencies": {
     "gulp": "^3.9.1",
     "gulp-concat": "^2.6.0",
+    "gulp-footer": "^1.0.5",
     "gulp-header": "^1.8.7",
     "gulp-minify": "0.0.12",
-    "gulp-wait": "0.0.2",
     "webpack": "^1.13.1",
     "webpack-stream": "^3.2.0"
   }
