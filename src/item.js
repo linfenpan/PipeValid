@@ -8,8 +8,8 @@
     }
   ]
 */
-
-function Item() {
+function Item(parent) {
+  this.parent = parent;
   this._reset();
 }
 
@@ -37,6 +37,11 @@ Item.prototype = {
     this.conditions.push(current);
   },
 
+  check: function(){
+    var parent = this.parent;
+    return parent.check.apply(parent, arguments);
+  },
+
   define: function(fn) {
     var args = toArray(arguments).slice(1);
     var error = args.splice(fn.length - 1)[0];
@@ -44,8 +49,39 @@ Item.prototype = {
     return this;
   },
 
-  custom: function(fn) {
-    // TODO 本期终极设想函数..
+  // callback(val, next); -> val 当前的值，next('error');错误 或 next();成功
+  custom: function(callback) {
+    var INTERRUPT = '__interrupt__';
+
+    var fn = function(val) {
+      var thenable = new Thenable();
+      var next = function(error) {
+        if (error) {
+          thenable.reject(error);
+          throw INTERRUPT;
+        } else {
+          thenable.resolve();
+        }
+      };
+
+      var ctx = getCheckerContenxt(this, val, next);
+      var args = [val, next].concat(toArray(arguments).slice(1));
+
+      try {
+        callback.apply(ctx, args);
+      } catch (e) {
+        // 不影响正常调试
+        if (e !== INTERRUPT) {
+          throw e;
+        }
+      }
+
+      return thenable;
+    }
+
+    var args = toArray(arguments);
+    this.current.run.push([fn, args.slice(1)]);
+
     return this;
   },
 
@@ -61,12 +97,6 @@ Item.prototype = {
   },
 
   start: function(value, callback) {
-    // [
-    //   {
-    //     when: [ ['notEmpty'], ['max', [100]] ]
-    //     run: [ ['int', ['错误']], ['min', [10], ['错误']] ]
-    //   }
-    // ]
     var self = this;
     var conditions = this.conditions.slice(0);
 
@@ -87,6 +117,7 @@ Item.prototype = {
     });
   },
 
+  // condition = { when: [], run: [] }
   _startNext: function(value, condition, next) {
     var self = this;
     this._run(value, condition.when.slice(0))
@@ -102,7 +133,7 @@ Item.prototype = {
       });
   },
 
-  // [ ['notEmpty'], ['max', [100]] ]
+  // checkers = [ ['notEmpty'], ['max', [100]] ]
   _run: function(value, checkers) {
     var self = this;
     var thenable = new Thenable();
@@ -119,7 +150,14 @@ Item.prototype = {
 
         if (result && result.then) {
           result.then(
-            next, function(){ thenable.reject(rejectResult); }
+            next,
+            function(customError){
+              // 有自定义的错误，则走自己的错误
+              if (customError) {
+                rejectResult.error = customError;
+              }
+              thenable.reject(rejectResult);
+            }
           );
         } else {
           if (result) {
@@ -138,6 +176,7 @@ Item.prototype = {
     return thenable;
   },
 
+  // condition = ['min', [1], '错误']
   _parseCondition: function(condition, value) {
     var fn = condition[0];
     return {
@@ -149,6 +188,31 @@ Item.prototype = {
   }
 };
 
+function getCheckerContenxt(parent, val, next) {
+  var ctx = { ctx: parent };
+  keys(checkers, function(key, fn){
+    ctx[key] = function() {
+      var args = toArray(arguments);
+      var error = args.splice(fn.length - 1)[0];
+      var result = fn.apply(parent, [val].concat(args));
+
+      if (result) {
+        if (result.then) {
+          result.then(
+            noop,
+            function(customError) { next(customError || error); }
+          );
+        }
+      } else if (error) {
+        next(error);
+      }
+
+      return result;
+    };
+  });
+  return ctx;
+}
+
 function combineChecker() {
   var proto = Item.prototype;
   keys(checkers, function(key, fn){
@@ -157,6 +221,10 @@ function combineChecker() {
 }
 
 function addChecker(key, fn) {
+  if (!checkers[key]) {
+    checkers[key] = fn;
+  }
+
   return function() {
     var args = toArray(arguments);
     var err = args.splice(Math.min(args.length, fn.length - 1))[0];

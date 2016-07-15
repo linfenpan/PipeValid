@@ -22,5 +22,5 @@ var checkers = {
   },
   int: function(val){
     return /^\d+$/.test(val);
-  },
+  }
 };

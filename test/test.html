@@ -7,10 +7,10 @@
 <body>
 
 √ 1. 没有必要多个error值，干掉吧!<br/>
-2. 能否 check('data.name') 呢? <br/>
-3. 能否 check('list[].name') 呢? <br/>
-4. 能否 check('list[0].name') 呢? <br/>
-5. checkAll 功能还没有实现<br/>
+√ 2. 能否 check('data.name') 呢? <br/>
+√ 3. 能否 check('list[].name') 呢? <br/>
+√ 4. 能否 check('list[0].name') 呢? <br/>
+√ 5. checkAll 功能还没有实现<br/>
 
 <script src="../src/util.js"></script>
 <script src="../src/thenable.js"></script>
@@ -18,77 +18,265 @@
 <script src="../src/item.js"></script>
 <script src="../src/pipeValid.js"></script>
 <script>
-  var pipe = new PipeValid();
-  var checkName = pipe.check('name');
+// 跑一个单元测试
+var cc = [];
 
-  pipe.define('isBear', function(val) {
-    return val === 'bear';
-  });
-  pipe.define('badWord', function(val) {
-    return new Promise(function(resolve, reject) {
-      setTimeout(function() {
-        if (val.indexOf('bad') >= 0) {
-          reject();
-        } else {
-          resolve();
-        }
-      }, 1000);
+cc.push({
+  desc: '正常声明',
+  run: function(next) {
+    var pipe = new PipeValid();
+    next();
+  }
+});
+
+cc.push({
+  desc: '验证单个属性',
+  run: function(next) {
+    var pipe = new PipeValid();
+    pipe.check('name')
+      .min(3, '名字最少3位')
+      .max(10, '名字最多10位');
+    var result = pipe.start({
+      name: 'da宗熊'
     });
-  });
+    next(result.error);
+  }
+});
 
-  checkName.notEmpty()
-    .then()
-    .min(3, '名字最少3位');
-  pipe.check('name')
-    .max(20, '名字不大于20位')
-    .define(function(val, arg1){
-      console.log('define时，附带参数通过~~', arg1);
-      return val.indexOf('熊') >= 0;
-    }, '参数1', '必须带上"熊"字!!')
-    .badWord('有错误关键字，名字不能带有"bad"');
+cc.push({
+  desc: '单个属性条件验证',
+  run: function(next) {
+    var pipe = new PipeValid();
+    var nameChecker = pipe.check('name');
 
-  pipe.check('age')
-    .int('年龄必须是整数');
+    nameChecker.min(10)
+      .then()
+      .max(5, '名字最大是5位，是不可能进入此验证的')
+      .end()
+      .max(10, '名字多大10位');
 
-  pipe.check('address')
-    .notEmpty('地址不能空哦');
+    var result = pipe.start({
+      name: 'da宗熊'
+    });
 
-  pipe.check('list[].name')
-    .min(3, '列表的名字，最少3位数');
+    next(result.error);
+  }
+});
 
-  // pipe.rule({
-  //   name: [
-  //     'max', 20, '名字最多20个字'
-  //   ],
-  //   age: [
-  //     ['notEmpty', '年龄不能空'],
-  //     ['then'],
-  //     ['int', '年龄必须是整数'],
-  //     ['max', 2, '年龄最多两位']
-  //   ]
-  // });
+cc.push({
+  desc: '自定义验证函数',
+  run: function(next) {
+    PipeValid.define('noneBadword', function(val){
+      return val.indexOf('bad') < 0;
+    });
 
-  var result = pipe.start({
-    name: 'da宗熊',
-    age: '123',
-    adress: '河东',
-    list: [
-      { name: '最少' }
-    ]
-  });
+    var pipe = new PipeValid();
+    pipe.check('word')
+      .noneBadword('不能含有bad关键字');
 
-  // var result = pipe.start({
-  //   name: 'da宗熊 bad',
-  //   age: '123d'
-  // }, ['name', 'age', 'address'], true);
+    var result = pipe.start({
+      word: 'I am a good word'
+    });
 
-  result.always(function() {
-    if (result.pass) {
-      console.log('全部成功');
+    next(result.error);
+  }
+});
+
+cc.push({
+  desc: '自定义异步验证函数 + 异步返回结果',
+  run: function(next) {
+    var pipe = new PipeValid();
+
+    pipe.define('ansyExistId', function(val) {
+      return new Promise(function(resolve, reject){
+        setTimeout(function(){
+          if (val.indexOf('x') === 0) {
+            resolve();
+          } else {
+            reject();
+          }
+        }, 200);
+      });
+    });
+
+    pipe.check('id')
+      .ansyExistId('这个id不存在哦');
+
+    // 检查含有异步，则需要通过 promise/a 规范，获取结果
+    var result = pipe.start({ id: 'x9901' });
+
+    result.always(function(){
+      next(result.error);
+    });
+  }
+});
+
+cc.push({
+  desc: '返回所有错误 + 验证简单的配置',
+  run: function(next) {
+    var pipe = new PipeValid();
+    pipe.check({
+      name: ['min', 5, '名字最少5位'],
+      age: ['int', '年龄必须是整数'],
+      address: [
+        ['notEmpty'],
+        ['then'],
+        ['min', 10, '地址最短10位']
+      ]
+    });
+
+    var isReturnAllError = true;
+    var result = pipe.start({
+      name: 'da宗熊',
+      age: 'x11',
+      address: '蟠龙街'
+    }, isReturnAllError);
+
+    next(result.error.length === 3 ? null : '需要返回3个错误');
+  }
+});
+
+cc.push({
+  desc: '指定验证某些属性 + 多个check链式调用',
+  run: function(next) {
+    var pipe = new PipeValid();
+
+    pipe
+      .check('name')
+      .min(3, '名字最短3位')
+      .check('age')
+      .int('年龄必须是整形')
+      .check('email')
+      .email('邮箱格式不正确');
+
+    var result = pipe.start({
+      name: 'da宗熊',
+      age: '22d',
+      email: '1071093121@qq.com'
+    }, ['name', 'email']);
+
+    // 不验证 age 属性
+    next(result.error);
+  }
+});
+
+cc.push({
+  desc: '验证属性表达式 + 量式自定义验证 + 抛出错误对象',
+  run: function(next) {
+    var pipe = new PipeValid();
+
+    pipe
+      .check('data.code')
+        .int('返回码，需是整形')
+      .check('list[].name')
+        .notEmpty('列表名字不能为空')
+        .min(3, '列表的各个名字，不得小于3位')
+      .check('list[1].name')
+        .define(function(val) {
+          return val.indexOf('ch') !== 0;
+        }, {
+          code: 1,
+          desc: '这是个被抛出的错误对象',
+          error: '不能含有ch开头哦'
+        });
+
+    var result = pipe.start({
+      data: {
+        code: 0,
+      },
+      list: [
+        { name: 'da宗熊' },
+        { name: 'ch小量' }
+      ]
+    });
+
+    var error = result.error;
+    if (error.code === 1) {
+      next();
     } else {
-      console.error(result.error);
+      next('应该抛出list[1].name的错误!!');
     }
-  });
+  }
+});
+
+cc.push({
+  desc: '试验check().custom功能，此功能后面，可能会去除',
+  run: function(next) {
+    var pipe = new PipeValid();
+
+    pipe.check('name')
+      .custom(function(val, next) {
+        if (this.notEmpty()) {
+          // 如果附带错误，内置会自动调用 next
+          this.min(3, '名字最少3位');
+          this.max(10, '名字不能超过10位');
+
+          var self = this;
+          setTimeout(function() {
+            if (val !== 'da宗熊') {
+              next('名字必须是"da宗熊"');
+            }
+            next();
+          }, 100);
+        } else {
+          next();
+        }
+      });
+
+    var result = pipe.start({ name: 'da宗熊' });
+
+    result.always(function(){
+      next(result.error);
+    });
+  }
+});
+
+
+var timeout = 5000;
+var timer;
+var index = 0;
+function loopTest(cc) {
+  var item = cc.shift();
+
+  if (!item) {
+    return console.log('%call success', 'color:green');
+  }
+
+  index++;
+  var desc = item.desc || index;
+  console.log(`%c${index}.${desc}`, 'color:green');
+
+  if (item.run) {
+    var shouldStopRunner = false;
+
+    clearTimeout(timer);
+    timer = setTimeout(function(){
+      shouldStopRunner = true;
+      console.log(`  %ctimeout`, 'color:red');
+    }, item.timeout || timeout);
+
+    try {
+      item.run(function(error) {
+        clearTimeout(timer);
+        if (shouldStopRunner) {
+          return;
+        }
+
+        if (error) {
+          console.log(`  %c${error}`, 'color:red');
+        } else {
+          console.log('%c  pass', 'color:green');
+          loopTest(cc);
+        }
+      });
+    } catch (e) {
+      clearTimeout(timer);
+      console.log(` %c${e.message}`, 'color:red');
+    }
+  }
+}
+
+loopTest(cc);
 
 </script>
 </body>

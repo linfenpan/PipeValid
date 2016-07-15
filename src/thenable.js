@@ -1,9 +1,13 @@
 'ust strict';
 
+var PENDING = 'pending';
+var DONE = 'done';
+var FAIL = 'fail';
+
 function Thenable() {
   this._records = [];
   this._param = null;
-  this._state = 'pending';
+  this._state = PENDING;
 }
 
 Thenable.prototype = {
@@ -12,7 +16,7 @@ Thenable.prototype = {
     var list = this._records;
     var item;
     while (item = list.shift()) {
-      if (state === 'done') {
+      if (state === DONE) {
         if (item.done) {
           param = item.done.call(this, param);
         }
@@ -35,27 +39,26 @@ Thenable.prototype = {
     return this;
   },
 
-  resolve: function(param) {
-    if (this._state === 'pending') {
-      this._state = 'done';
+  _changeState: function(state, param) {
+    if (this._state === PENDING) {
+      this._state = state;
       this._param = param;
       return this._exe(param);
     }
     return this;
   },
 
+  resolve: function(param) {
+    return this._changeState(DONE, param);
+  },
+
   reject: function(param) {
-    if (this._state === 'pending') {
-      this._state = 'fail';
-      this._param = param;
-      return this._exe(param);
-    }
-    return this;
+    return this._changeState(FAIL, param);
   },
 
   then: function(resolve, reject) {
     this._records.push({ done: resolve, fail: reject });
-    if (this._state !== 'pending') {
+    if (this._state !== PENDING) {
       return this._exe(this._param);
     }
     return this;
