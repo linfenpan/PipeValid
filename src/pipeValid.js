@@ -161,3 +161,9 @@ PipeValid.prototype = {
 PipeValid.define = function(name, validFn) {
   Item.prototype[name] = addChecker(name, validFn);
 };
+
+extend(PipeValid, {
+  Thenable: Thenable,
+  checkers: checkers,
+  Item: Item
+});

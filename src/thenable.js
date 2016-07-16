@@ -25,19 +25,20 @@ Thenable.prototype = {
           param = item.fail.call(this, param);
         }
       }
-      this._pipeToNextThen(param);
+      this._param = param;
     }
     return this;
   },
 
-  _pipeToNextThen: function(then) {
-    if (then instanceof Thenable) {
-      then._records = this._records.splice(0);
-      return then;
-    }
-    this._param = then;
-    return this;
-  },
+  // _pipeToNextThen: function(then) {
+  //   if (then instanceof Thenable) {
+  //     then._records = this._records.slice(0);
+  //     this._records = [];
+  //     return then;
+  //   }
+  //   this._param = then;
+  //   return this;
+  // },
 
   _changeState: function(state, param) {
     if (this._state === PENDING) {
