@@ -32,11 +32,15 @@ if (error) {
 var valid = new PipeValid();
 
 valid.check("name")
-	 .notEmpty("名字不能为空")
-	 .max(20, "名字长度不能超过20")
-	 .min(2, "名字不能小于2位");
+		.notEmpty("名字不能为空")
+		.max(20, "名字长度不能超过20")
+		.min(2, "名字不能小于2位")
+	.check("text")
+		.notEmpty("文本不能空")
+	.check("url")
+		.url("请正确填写链接");
 
-var result = valid.start({ name: "da宗熊" });
+valid.start({ name: "da宗熊", text: "xx", url: "" });
 
 if(!result.pass){
 	alert(result.error);
@@ -176,7 +180,7 @@ if(!result.pass){
 
 ### PipeValid
 
-1. check(name: String|Object)
+1、check(name: String|Object)
 返回一个 ```Item``` 实例，该实例拥有定义的所有验证方法
 
 ``` javascript
@@ -198,7 +202,7 @@ pipe.check('[].name'); // 检测该列表的所有 name 属性
 所以说，属性名字，千万别包含"[]."哦~~。
 
 
-2. rule(checkList: Object)
+2、rule(checkList: Object)
 以数组形式，配置验证器
 
 ``` javascript
@@ -222,7 +226,7 @@ pipe.rule({
 可有多个验证参数，不过数量，要严格等于验证函数的参数数量减一
 
 
-3. define(name: String, fn: Function)
+3、define(name: String, fn: Function)
 在 ```Checker``` 增添新的验证方法
 
 ``` javascript
@@ -235,7 +239,7 @@ checker.isBear('必须是bear!');
 PipeValid.define 等价于 pipe.define，只是 pipe.define 之后，继续返回 this 对象
 
 
-4. start(data: Object, restrict: Array?, isCheckAll: Boolean?)
+4、start(data: Object, restrict: Array?, isCheckAll: Boolean?)
  - data是需要验证的对象，
  - restrict是规定，本次验证，使用哪些 checker，字符串数组哦
  - isCheckAll，本次验证，是否返回所有错误？result.error将会是数组
@@ -271,7 +275,7 @@ PipeValid.define 等价于 pipe.define，只是 pipe.define 之后，继续返�
 
 当 PipeValid 实例，调用 check(String) 方法时，将返回一个 Item 对象
 
-1. 内置验证
+1、内置验证
  - max(len: Int, error: String|Object)
  - min(len: Int, error: String|Object)
  - url(error: String|Object)
@@ -282,7 +286,7 @@ PipeValid.define 等价于 pipe.define，只是 pipe.define 之后，继续返�
 所有 Item 实例，都默认拥有上面全部验证方法
 
 
-2. define(fn: Function, 参数2?, 参数3?, error: String|Object)
+2、define(fn: Function, 参数2?, 参数3?, error: String|Object)
 自定义错误验证，其中验证函数 fn 的第1个参数，必定是需要验证的值
 
 ``` javascript
@@ -298,7 +302,7 @@ pipe.check('word')
 其中，如果自定义的函数，只有 val 一个参数，那么对应的，"参数2?, 参数3?" 则不该存在
 
 
-3. then() 和 end()
+3、then() 和 end()
 then, 把前面链条中的所有方法，更变为验证生效的条件。
 end, 结束本次 then 操作
 
@@ -317,11 +321,11 @@ pipe.check('text')
 	.int('请输入整数');
 ```
 
-4. check(Name: String)
+4、check(Name: String)
 调用父亲的check方法
 
 
-5. custom(fn: Function(val, next: Function))
+5、custom(fn: Function(val, next: Function))
 完全自定义的验证，fn中的this上下文，被更改为一个拥有当前所有验证器的对象。
 
 ``` javascript
