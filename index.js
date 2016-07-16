@@ -1,4 +1,4 @@
-/*! pipe-valid-2.0.0 by da宗熊 ISC https://github.com/linfenpan/PipeValid#readme*/
+/*! pipe-valid-2.0.1 by da宗熊 ISC https://github.com/linfenpan/PipeValid#readme*/
 (function (root, factory) {
   if (typeof define === 'function') {
     if (define.amd) {

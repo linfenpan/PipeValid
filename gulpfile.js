@@ -7,7 +7,6 @@ const header = require('gulp-header');
 const footer = require('gulp-footer');
 const minify = require('gulp-minify');
 const replace = require('gulp-replace');
-const webpack = require('webpack-stream');
 
 // 进行 umd 打包
 const headerText = `/*! ${pkg.name}-${pkg.version} by ${pkg.author} ${pkg.license} ${pkg.homepage}*/
