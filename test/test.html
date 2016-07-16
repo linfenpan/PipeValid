@@ -41,6 +41,20 @@ cc.push({
 });
 
 cc.push({
+  desc: '验证单个属性，抛出错误的',
+  run: function(next) {
+    var pipe = new PipeValid();
+
+    pipe.check('name')
+      .min(10, '名字至少10个字');
+
+    var result = pipe.start({ name: 'da宗熊' });
+
+    next(result.error && result.error !== 'min' ? null : '应该抛出自定义的错误');
+  }
+});
+
+cc.push({
   desc: '单个属性条件验证',
   run: function(next) {
     var pipe = new PipeValid();
@@ -236,7 +250,7 @@ function loopTest(cc) {
   var item = cc.shift();
 
   if (!item) {
-    return logInfo('call success');
+    return logInfo('all success');
   }
 
   index++;

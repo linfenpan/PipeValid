@@ -6,6 +6,7 @@ const concat = require('gulp-concat');
 const header = require('gulp-header');
 const footer = require('gulp-footer');
 const minify = require('gulp-minify');
+const replace = require('gulp-replace');
 const webpack = require('webpack-stream');
 
 // 进行 umd 打包
@@ -35,15 +36,46 @@ const footerText = `
 }));
 `;
 
+const replaceMap = {};
+function getReplaceKey(key) {
+  if (!replaceMap[key]) {
+    replaceMap[key] = autoKey();
+  }
+  return replaceMap[key];
+}
+
+
+const maxIndex = 123;
+const minIndex = 97;
+const distance = maxIndex - minIndex;
+let currentIndex = maxIndex;
+function autoKey() {
+  let ch = '';
+  let leave = currentIndex - maxIndex;
+
+  do {
+    const index = leave % distance;
+    ch = String.fromCharCode(index + minIndex) + ch;
+    leave = Math.floor((leave - index) / distance);
+  } while (leave > 0);
+
+  currentIndex++;
+  return ch;
+}
+
+const files = [
+  './src/util.js',
+  './src/thenable.js',
+  './src/checker.js',
+  './src/item.js',
+  './src/PipeValid.js'
+];
+const targetName = 'index.js';
+const targetDir = './';
+
 gulp.task('concat', () => {
-  const stream = gulp.src([
-      './src/util.js',
-      './src/thenable.js',
-      './src/checker.js',
-      './src/item.js',
-      './src/PipeValid.js'
-    ])
-    .pipe(concat('index.js'))
+  return gulp.src(files)
+    .pipe(concat(targetName))
     .pipe(header(headerText))
     .pipe(footer(footerText))
     .pipe(
@@ -52,10 +84,24 @@ gulp.task('concat', () => {
       })
     )
     .pipe(
-      gulp.dest('./')
+      gulp.dest(targetDir)
     );
-  return stream;
 });
 
+// 虽然相差不大，就想玩玩~
+gulp.task('tryToMinify', (callback) => {
+  setTimeout(() => {
+    gulp.src(targetName.replace('.js', '-min.js'))
+      .pipe(
+        replace(/(_+\w+?)\b/g, (str, key) => {
+          return '_' + getReplaceKey(key);
+        })
+      )
+      .pipe(
+        gulp.dest('./')
+      );
+    callback();
+  }, 1000);
+})
 
-gulp.task('default', ['concat']);
+gulp.task('default', ['concat', 'tryToMinify']);
