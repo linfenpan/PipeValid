@@ -97,13 +97,13 @@ if(!result.pass){
 
  4. 内置常用验证器
 
- notEmpty: 非空
- min: 最小值，接受两个参数 valid.min(int, string);
- max: 最大值，接受两个参数 valid.max(int, string);
- url: 链接
- int: 整数
- number: 数字
- email: 邮件
+ - notEmpty: 非空
+ - min: 最小值，接受两个参数 valid.min(int, string);
+ - max: 最大值，接受两个参数 valid.max(int, string);
+ - url: 链接
+ - int: 整数
+ - number: 数字
+ - email: 邮件
 
 
  5. 良好的拓展
