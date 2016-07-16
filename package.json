@@ -1,6 +1,6 @@
 {
   "name": "pipe-valid",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "致力于数据验证，链式可配置",
   "main": "index.js",
   "directories": {
