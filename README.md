@@ -240,6 +240,7 @@ PipeValid.define 等价于 pipe.define，只是 pipe.define 之后，继续返�
 
 
 4、start(data: Object, restrict: Array?, isCheckAll: Boolean?)
+
  - data是需要验证的对象，
  - restrict是规定，本次验证，使用哪些 checker，字符串数组哦
  - isCheckAll，本次验证，是否返回所有错误？result.error将会是数组
@@ -276,6 +277,7 @@ PipeValid.define 等价于 pipe.define，只是 pipe.define 之后，继续返�
 当 PipeValid 实例，调用 check(String) 方法时，将返回一个 Item 对象
 
 1、内置验证
+
  - max(len: Int, error: String|Object)
  - min(len: Int, error: String|Object)
  - url(error: String|Object)
