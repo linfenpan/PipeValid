@@ -338,7 +338,7 @@ result.then(function() {
 2、define(fn: Function, 参数2?, 参数3?, error: String|Object)
 自定义错误验证，其中验证函数 fn 的第1个参数，必定是需要验证的值
 
-``` javascript
+```javascript
 pipe.check('word')
   .define(function(val, parm1, params) {
     // 返回 true -> 验证通过
@@ -355,7 +355,7 @@ pipe.check('word')
 then, 把前面链条中的所有方法，更变为验证生效的条件。
 end, 结束本次 then 操作
 
-``` javascript
+```javascript
 // 如果当前的值，不为空，才去验证 url 是否链接
 pipe.check('url').notEmpty()
   .then()
@@ -377,7 +377,7 @@ pipe.check('text')
 5、custom(fn: Function(val, next: Function))
 完全自定义的验证，fn中的this上下文，被更改为一个拥有当前所有验证器的对象。
 
-``` javascript
+```javascript
 /*
   max 验证其定义如下:
   max: function(val, len){
@@ -406,7 +406,7 @@ pipe.check('name')
 但是，如果是异步验证函数，则需要在其发生 reject 时，才能中断，所以要小心处理异步函数了。
 
 上述代码，等价于
-``` javascript
+```javascript
 pipe.check('name')
   .custom(function(val, next) {
     // 判定当前 val 长度小于等于10
@@ -424,7 +424,7 @@ pipe.check('name')
 
 一个仿 Promise 的对象，只提供了 reject/resolve/then/always/catch 方法
 
-``` javascript
+```javascript
 var thenable = new Thenable();
 
 thenable.resolve(1);
