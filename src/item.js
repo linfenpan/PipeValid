@@ -146,7 +146,7 @@ Item.prototype = {
             error = parser.error || key,
             params = parser.params;
         var result = fn.apply(self, params);
-        var rejectResult = { key: key, error: error };
+        var rejectResult = { type: key, error: error };
 
         if (result && result.then) {
           result.then(
@@ -213,13 +213,6 @@ function getCheckerContenxt(parent, val, next) {
   return ctx;
 }
 
-function combineChecker() {
-  var proto = Item.prototype;
-  keys(checkers, function(key, fn){
-    proto[key] = addChecker(key, fn);
-  });
-}
-
 function addChecker(key, fn) {
   if (!checkers[key]) {
     checkers[key] = fn;
@@ -232,6 +225,13 @@ function addChecker(key, fn) {
     this.current.run.push([key, args.slice(0, fnLen), err]);
     return this;
   };
+}
+
+function combineChecker() {
+  var proto = Item.prototype;
+  keys(checkers, function(key, fn){
+    proto[key] = addChecker(key, fn);
+  });
 }
 
 combineChecker();

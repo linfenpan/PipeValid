@@ -15,15 +15,15 @@ var name = "da宗熊";
 var error = "";
 
 if ( name.trim() === "") {
-	error = "名字不能为空";
+  error = "名字不能为空";
 } else if (name.length > 20) {
-	error = "名字长度不能超过20";
+  error = "名字长度不能超过20";
 } else if (name.length < 2) {
-	error = "名字不能小于2位";
+  error = "名字不能小于2位";
 }
 
 if (error) {
-	alert(error);
+  alert(error);
 }
 ```
 
@@ -32,147 +32,151 @@ if (error) {
 var valid = new PipeValid();
 
 valid.check("name")
-		.notEmpty("名字不能为空")
-		.max(20, "名字长度不能超过20")
-		.min(2, "名字不能小于2位")
-	.check("text")
-		.notEmpty("文本不能空")
-	.check("url")
-		.url("请正确填写链接");
+    .notEmpty("名字不能为空")
+    .max(20, "名字长度不能超过20")
+    .min(2, "名字不能小于2位")
+  .check("text")
+    .notEmpty("文本不能空")
+  .check("url")
+    .url("请正确填写链接");
 
 valid.start({ name: "da宗熊", text: "xx", url: "" });
 
 if(!result.pass){
-	alert(result.error);
+  alert(result.error);
 }
 ```
 
 ## 优势
 
- 1. 可复用的链式配置
+1、可复用的链式配置
 
- 抛弃反锁的if、else的操作，使用链式定义，验证错误，其中的验证函数，更是定义一次，就可反复使用。
+抛弃反锁的if、else的操作，使用链式定义，验证错误，其中的验证函数，更是定义一次，就可反复使用。
 
- ``` javascript
- valid.check("name")
- 	.max(10, "xx...");
- ```
+``` javascript
+valid.check("name")
+  .max(10, "xx...");
+```
 
- 2. 实例可反复使用
+2、实例可反复使用
 
- 同一个实例，同一份配置，调用不同的start，返回独立的结果
+同一个实例，同一份配置，调用不同的start，返回独立的结果
 
- ``` javascript
- // 多个start，使用相同配置，进行多个验证
- var result1 = valid.start({ name: "da宗熊" });
- var result2 = valid.start({ name: "da宗熊2" });
- ```
+``` javascript
+// 多个start，使用相同配置，进行多个验证
+var result1 = valid.start({ name: "da宗熊" });
+var result2 = valid.start({ name: "da宗熊2" });
+```
 
- 3. 支持异步验证
+3、支持异步验证
 
- 验证结果，返回一个简单的 promise/a 规范的对象，支持异步验证
+验证结果，返回一个简单的 promise/a 规范的对象，支持异步验证
 
- ``` javascript
- 	valid.check('name')
-		.define(function(val) {
-			return new Promise(function(resolve, reject) {
-				setTimeout(function() {
-					if (val.indexOf('bad') >= 0) {
-						reject();
-					} else {
-						resolve();
-					}
-				}, 1000);
-			}, '名字里，不能含有"bad"关键字');
-		});
+``` javascript
+valid.check('name')
+  .define(function(val) {
+    return new Promise(function(resolve, reject) {
+      setTimeout(function() {
+        if (val.indexOf('bad') >= 0) {
+          reject();
+        } else {
+          resolve();
+        }
+      }, 1000);
+    }, '名字里，不能含有"bad"关键字');
+  });
 
-	var result = valid.start({ name: 'da宗熊' });
+var result = valid.start({ name: 'da宗熊' });
 
-	result.always(function() {
-		// 如果 check 列表中，含有异步函数
-		// 需要在此处，才能获取到正确的结果
-		// result.pass/result.error/result.key/result.index
-	});
- ```
+result.always(function() {
+  // 如果 check 列表中，含有异步函数
+  // 需要在此处，才能获取到正确的结果
+  // result.pass/result.error/result.key/result.index
+});
+```
 
- 4. 内置常用验证器
+4、内置常用验证器
 
- - notEmpty: 非空
- - min: 最小值，接受两个参数 valid.min(int, string);
- - max: 最大值，接受两个参数 valid.max(int, string);
- - url: 链接
- - int: 整数
- - number: 数字
- - email: 邮件
-
-
- 5. 良好的拓展
-
- 自定义链式函数：
-
- ``` javascript
- // 定义新的验证函数
- PipeValid.define("isBear", function(val){
-	 return val === "bear";
- });
-
- // 使用新的链式函数
- valid.check("bear")
- 	.notEmpty("bear字段不能为空")
-	.isBear("bear必须是bear!");
-
- valid.start({ bear:"xx" }); // ⇒ { pass: false, key: "bear", error: "bear必须是bear!" }
- ```
-
- 新的isBear链式函数，第1个参数，永远是需要被验证的值。
-
- 自定义验证函数:
-  ``` javascript
- valid.check("min")
-	 .define(function(val){
-		 return +val >= 3;
-	 }, "min最小是3");
-
- valid.start({min: 1}); // ==> {attr: "min", error: "min最小是3"}
- ```
-
- 6. 条件验证
-
- 只有满足某种需求(判断)，才执行的验证
-
- ``` javascript
- // 如果url的值不为空，则验证它是否链接；为空，则什么都不干
- valid.check("url")
- 	.notEmpty()
-	.then()
-	.url("输入必须是链接")
-	.end();
-
- valid.start({ url: "" }); // ⇒ {pass: true}
- valid.start({ url: "xxyy" }); // ⇒ { pass: false, key: "url", error: "输入必须是链接" }
- ```
-
- 使用了then之后，之前添加的函数，则会转化为验证前的条件，而end则是then函数的结束。
-
- 如果本次check操作，没有后续的验证，end函数可忽略。
+- notEmpty: 非null，且非 全空 的字符
+- min: 字符串最小长度
+- max: 字符串最大长度
+- url: 链接
+- int: 整数
+- number: 数字
+- email: 邮件
+- gt: 数字大于
+- gte: 数字大于等于
+- lt: 数字小于
+- lte: 数字小于等于
 
 
- 7. 支持属性表达式
+5、良好的拓展
 
- 如果你想验证 "data.code" 或 "list[1].name" 这种表达式，PipeValid 可以帮到你。
+自定义链式函数：
 
- ``` javascript
-	var valid = new PipeValid();
+``` javascript
+// 定义新的验证函数
+PipeValid.define("isBear", function(val){
+  return val === "bear";
+});
 
-	valid.check('data.code')
-		.int('code必须是整型');
+// 使用新的链式函数
+valid.check("bear")
+  .notEmpty("bear字段不能为空")
+  .isBear("bear必须是bear!");
 
-	var result = valid.start({
-		data: { code: '789d' }
-	});
+valid.start({ bear:"xx" }); // ⇒ { pass: false, key: "bear", error: "bear必须是bear!" }
+```
 
-	result.pass === false;
- ```
+新的isBear链式函数，第1个参数，永远是需要被验证的值。
+
+自定义验证函数:
+``` javascript
+valid.check("min")
+  .define(function(val){
+      return +val >= 3;
+  }, "min最小是3");
+
+valid.start({min: 1}); // ==> {attr: "min", error: "min最小是3"}
+```
+
+6、条件验证
+
+只有满足某种需求(判断)，才执行的验证
+
+``` javascript
+// 如果url的值不为空，则验证它是否链接；为空，则什么都不干
+valid.check("url")
+  .notEmpty()
+  .then()
+  .url("输入必须是链接")
+  .end();
+
+valid.start({ url: "" }); // ⇒ {pass: true}
+valid.start({ url: "xxyy" }); // ⇒ { pass: false, key: "url", error: "输入必须是链接" }
+```
+
+使用了then之后，之前添加的函数，则会转化为验证前的条件，而end则是then函数的结束。
+
+如果本次check操作，没有后续的验证，end函数可忽略。
+
+
+7、支持属性表达式
+
+如果你想验证 "data.code" 或 "list[1].name" 这种表达式，PipeValid 可以帮到你。
+
+``` javascript
+var valid = new PipeValid();
+
+valid.check('data.code')
+  .int('code必须是整型');
+
+var result = valid.start({
+  data: { code: '789d' }
+});
+
+result.pass === false;
+```
 
 ------------------------------
 
@@ -207,12 +211,12 @@ pipe.check('[].name'); // 检测该列表的所有 name 属性
 
 ``` javascript
 pipe.rule({
-	// 多个验证规则，同时也支持 then 和 end 方法
+  // 多个验证规则，同时也支持 then 和 end 方法
   name: [
     ['notEmpty', '不能为空'],
     ['min', 3, '最少3位']
   ],
-	// 单个验证规则
+  // 单个验证规则
   age: ['int', '必须是整数']
 });
 ```
@@ -239,38 +243,78 @@ checker.isBear('必须是bear!');
 PipeValid.define 等价于 pipe.define，只是 pipe.define 之后，继续返回 this 对象
 
 
-4、start(data: Object, restrict: Array?, isCheckAll: Boolean?)
+4.1、start(data: Object, restrict: Array?, isCheckAll: Boolean?)
 
- - data是需要验证的对象，
- - restrict是规定，本次验证，使用哪些 checker，字符串数组哦
- - isCheckAll，本次验证，是否返回所有错误？result.error将会是数组
+- data是需要验证的对象，
+- restrict是规定，本次验证，使用哪些 checker，字符串数组哦
+- isCheckAll，本次验证，是否返回所有错误？result.error将会是数组
 
- 该方法，总是返回一个 Thenable 对象，有 then/always/catch 方法。
- 如果执行的所有checker，都没有异步检测，结果将会是同步返回，
- 如果有异步的检测，结果同样会异步返回。
+该方法，总是返回一个 Thenable 对象，有 then/always/catch 方法。
+如果执行的所有checker，都没有异步检测，结果将会是同步返回，
+如果有异步的检测，结果同样会异步返回。
 
- ``` javascript
- var pipe = new PipeValid();
+``` javascript
+var pipe = new PipeValid();
 
- // 假设 noneBadword 是异步验证
- pipe.check('name')
- 	.min(3, '名字最短3个字')
-	.noneBadword('不能含有非法关键字');
+// 假设 noneBadword 是异步验证
+pipe.check('name')
+  .min(3, '名字最短3个字')
+  .noneBadword('不能含有非法关键字');
 
- var result = pipe.start({ name: 'da宗熊' });
+var result = pipe.start({ name: 'da宗熊' });
 
- result.pass // undefined，因为需要等待 noneBadword 的执行
+result.pass // undefined，因为需要等待 noneBadword 的执行
 
- result.always(function() {
-	 result.pass // 得到最终的结果
- });
- ```
+result.always(function() {
+  result.pass // 得到最终的结果
+});
+```
 
- 注意：
+注意：
 
- 如果定义了 check('name')，但是，在 start({ age: 1 }) 中，又不含有 name 属性，那么 name 属性的检测，将会被忽略。
+如果定义了 check('name')，但是，在 start({ age: 1 }) 中，又不含有 name 属性，那么 name 属性的检测，将会被忽略。
 
- 如果一定要验证，请指定 restrict 列表，start({ age: 1 }, ['name', 'age'])，有 restrict 列表，则只会验证列表指定的内容，同时，如果发现内容不存在，也会抛出设定的错误。
+如果一定要验证，请指定 restrict 列表，start({ age: 1 }, ['name', 'age'])，有 restrict 列表，则只会验证列表指定的内容，同时，如果发现内容不存在，也会抛出设定的错误。
+
+
+4.2、start(data: Object, restrict: Array?, isCheckAll: Boolean?) 的返回结果
+
+返回结果，有两类，一类是对象，一类是数组。
+
+1) isCheckAll = false;
+```javascript
+var result = {
+  pass: true|false,
+  error: '错误信息',
+  type: '错误类型',
+  key: '错误的key',
+  value: '错误的值',
+  index: '错误 key 的索引，一般忽略'
+};
+```
+
+2) isCheckAll = true;
+```javascript
+// 错误对象参考 isCheckAll = false
+var result = {
+  pass: true|false,
+  error: [ {错误对象1}, {错误对象2} ]
+};
+```
+
+注意: 如果验证过程中有异步操作，`pass`和`error` 也将会异步生成，要获取结果，必须通过回调的方式:
+```javascript
+// 加入存在异步的验证
+var result = pipe.start({...});
+result.then(function() {
+  // 验证通过，必定调用此函数，this = result
+}).catch(function() {
+  // 验证失败，必定调用此函数
+}).always(function() {
+  // 无路成功还是失败，都调用此函数
+});
+```
+
 
 ### PipeValid.Item
 
@@ -278,14 +322,17 @@ PipeValid.define 等价于 pipe.define，只是 pipe.define 之后，继续返�
 
 1、内置验证
 
- - max(len: Int, error: String|Object)
- - min(len: Int, error: String|Object)
- - url(error: String|Object)
- - int(error: String|Object)
- - email(error: String|Object)
- - notEmpty(error: String|Object)
-
-所有 Item 实例，都默认拥有上面全部验证方法
+- notEmpty(error: String|Object) 验证是字符串 != null 而且，不全是空格
+- max(len: String, error: String|Object) 验证字符串的最大长度
+- min(len: String, error: String|Object) 验证字符串的最小长度
+- url(error: String|Object) 验证字符串是否 url
+- email(error: String|Object) 验证是否正确的邮箱地址
+- number(error: String|Object) 验证是否数字
+- int(error: String) 验证是否整数
+- gt(min: Number, error: String|Object) 验证数字是否大于 min
+- gte(min: Number, error: String|Object) 验证数字是否大于等于 min
+- lt(max: Number, error: String|Object) 验证数字是否小于 max
+- lte(max: Number, error: String|Object) 验证数字是否小于等于 max
 
 
 2、define(fn: Function, 参数2?, 参数3?, error: String|Object)
@@ -293,12 +340,12 @@ PipeValid.define 等价于 pipe.define，只是 pipe.define 之后，继续返�
 
 ``` javascript
 pipe.check('word')
-	.define(function(val, parm1, params) {
-		// 返回 true -> 验证通过
-		// 返回 false -> 验证不通过
-		// 返回 promise 对象，如果是 reject 不通过，resolve 则通过
-		// promise对象的 reject 如果附带参数，则会把 error 覆盖掉！！！
-	}, 'param1', 'param2', 'error text');
+  .define(function(val, parm1, params) {
+    // 返回 true -> 验证通过
+    // 返回 false -> 验证不通过
+    // 返回 promise 对象，如果是 reject 不通过，resolve 则通过
+    // promise对象的 reject 如果附带参数，则会把 error 覆盖掉！！！
+  }, 'param1', 'param2', 'error text');
 ```
 
 其中，如果自定义的函数，只有 val 一个参数，那么对应的，"参数2?, 参数3?" 则不该存在
@@ -311,16 +358,16 @@ end, 结束本次 then 操作
 ``` javascript
 // 如果当前的值，不为空，才去验证 url 是否链接
 pipe.check('url').notEmpty()
-	.then()
-	.url('必须是链接');
+  .then()
+  .url('必须是链接');
 
 // 如果 text 大于20，则验证是否连接，否则判定 text 是否整数
 pipe.check('text')
-	.min(20)
-	.then()
-	.url('text必须是链接')
-	.end()
-	.int('请输入整数');
+  .min(20)
+  .then()
+  .url('text必须是链接')
+  .end()
+  .int('请输入整数');
 ```
 
 4、check(Name: String)
@@ -332,26 +379,26 @@ pipe.check('text')
 
 ``` javascript
 /*
-	max 验证其定义如下:
-	max: function(val, len){
+  max 验证其定义如下:
+  max: function(val, len){
     val = "" + val;
     return val && val.length <= len;
   }
 */
 
 pipe.check('name')
-	.custom(function(val, next) {
-		// 判定当前 val 长度小于等于10
-		if (this.max(10)) {
-			// 执行是否整数的验证
-			if (!this.int()) {
-				// 往外抛出错误
-				next('输入必须是整数');
-			}
-		}
-		// 没有错误，通知继续执行
-		next();
-	});
+  .custom(function(val, next) {
+    // 判定当前 val 长度小于等于10
+    if (this.max(10)) {
+      // 执行是否整数的验证
+      if (!this.int()) {
+        // 往外抛出错误
+        next('输入必须是整数');
+      }
+    }
+    // 没有错误，通知继续执行
+    next();
+  });
 ```
 
 在 custom 的函数里，this 方法调用的所有 验证器，都默认绑定了 val 的参数。
@@ -361,15 +408,15 @@ pipe.check('name')
 上述代码，等价于
 ``` javascript
 pipe.check('name')
-	.custom(function(val, next) {
-		// 判定当前 val 长度小于等于10
-		if (this.max(10)) {
-			// 执行是否整数的验证，如果不是整型，则抛出错误
-			this.int('输入必须是整数');
-		}
-		// 没有错误，通知继续执行
-		next();
-	});
+  .custom(function(val, next) {
+    // 判定当前 val 长度小于等于10
+    if (this.max(10)) {
+      // 执行是否整数的验证，如果不是整型，则抛出错误
+      this.int('输入必须是整数');
+    }
+    // 没有错误，通知继续执行
+    next();
+  });
 ```
 
 
@@ -383,15 +430,15 @@ var thenable = new Thenable();
 thenable.resolve(1);
 
 thenable.then(function(data) {
-	console.log(data); // 1
-})
-.then(function(data) {
-	console.log(data); // undefined
-	return {};
-})
-.then(function(data) {
-	console.log(data); // {}
-});
+    console.log(data); // 1
+  })
+  .then(function(data) {
+    console.log(data); // undefined
+    return {};
+  })
+  .then(function(data) {
+    console.log(data); // {}
+  });
 ```
 
 -------------------------

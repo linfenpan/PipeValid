@@ -7,7 +7,7 @@
 <body>
 
 <!-- 不需要依赖jquery，不过在ie测试时，用到了$.Deferred -->
-<script src="//cdn.bootcss.com/jquery/1.8.3/jquery.js"></script>
+<script src="http://cdn.bootcss.com/jquery/1.8.3/jquery.js"></script>
 <script src="../index-min.js"></script>
 <!-- <script src="../src/util.js"></script>
 <script src="../src/thenable.js"></script>
@@ -239,6 +239,47 @@ cc.push({
     result.always(function(){
       next(result.error);
     });
+  }
+});
+
+cc.push({
+  desc: '验证所有内置验证器',
+  run: function(next) {
+    var pipe = new PipeValid();
+    pipe
+      .check('name')
+        .notEmpty('请填入名字')
+        .min(3, '名字至少3位数')
+        .max(5, '名字不能超过5位数')
+      .check('age')
+        .notEmpty('请填入年龄')
+        .gt(18, '年龄必须大于18')
+        .lt(50, '年龄必须小于50')
+      .check('money')
+        .notEmpty()
+      .then()
+        .number('金币格式不正确1')
+        .int('金币格式不正确2')
+        .gte(100, '金钱必须超过或等于100')
+        .lte(1000, '金钱必须小于或等于1000')
+      .check('email')
+        .notEmpty()
+      .then()
+        .email('邮箱格式不正确')
+      .check('homepage')
+        .notEmpty()
+      .then()
+        .url('个人主页地址不正确');
+
+    var result = pipe.start({
+      name: 'da宗熊',
+      age: 20,
+      money: '1000',
+      email: 'test@qq.com',
+      homepage: 'http://www.test.com/homepage.html',
+    });
+    
+    next(result.error);
   }
 });
 

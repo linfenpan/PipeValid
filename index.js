@@ -1,6 +1,9 @@
-/*! pipe-valid-2.0.1 by da宗熊 ISC https://github.com/linfenpan/PipeValid#readme*/
+/*! pipe-valid-2.0.3 by da宗熊 ISC https://github.com/linfenpan/PipeValid#readme*/
 (function (root, factory) {
-  if (typeof define === 'function') {
+  if (typeof module === 'object') {
+    // webpack
+    module.exports = factory();
+  } else if (typeof define === 'function') {
     if (define.amd) {
       // AMD
       define(factory);
@@ -236,7 +239,6 @@ Thenable.prototype = {
 'use strict';
 
 var checkers = {
-  // max, min, empty, email, url, phone, number, int, float
   max: function(val, len){
     val = "" + val;
     return val && val.length <= len;
@@ -246,10 +248,10 @@ var checkers = {
     return val && val.length >= len;
   },
   notEmpty: function(val){
-    return val && !/^\s*$/g.test(val);
+    return val != null && !/^\s*$/g.test(val);
   },
   url: function(val){
-    return /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(val);
+    return /^(https?:|ftp:)?\/\/([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(val);
   },
   email: function(val){
     return /^([a-z0-9_\.-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})$/.test(val);
@@ -258,7 +260,20 @@ var checkers = {
     return !isNaN(Number(val));
   },
   int: function(val){
-    return /^\d+$/.test(val);
+    return /^-?\d+$/.test(val);
+  },
+  // 下面几个，针对数字的对比
+  gt: function(val, compareVal) {
+    return Number(val) > compareVal;
+  },
+  gte: function(val, compareVal) {
+    return Number(val) >= compareVal;
+  },
+  lt: function(val, compareVal) {
+    return Number(val) < compareVal;
+  },
+  lte: function(val, compareVal) {
+    return Number(val) <= compareVal;
   }
 };
 
@@ -410,7 +425,7 @@ Item.prototype = {
             error = parser.error || key,
             params = parser.params;
         var result = fn.apply(self, params);
-        var rejectResult = { key: key, error: error };
+        var rejectResult = { type: key, error: error };
 
         if (result && result.then) {
           result.then(
@@ -477,13 +492,6 @@ function getCheckerContenxt(parent, val, next) {
   return ctx;
 }
 
-function combineChecker() {
-  var proto = Item.prototype;
-  keys(checkers, function(key, fn){
-    proto[key] = addChecker(key, fn);
-  });
-}
-
 function addChecker(key, fn) {
   if (!checkers[key]) {
     checkers[key] = fn;
@@ -496,6 +504,13 @@ function addChecker(key, fn) {
     this.current.run.push([key, args.slice(0, fnLen), err]);
     return this;
   };
+}
+
+function combineChecker() {
+  var proto = Item.prototype;
+  keys(checkers, function(key, fn){
+    proto[key] = addChecker(key, fn);
+  });
 }
 
 combineChecker();
@@ -550,12 +565,12 @@ PipeValid.prototype = {
   },
 
   /**
-    * 启动验证
-    * @param {Object} data，需要验证的数据
-    * @param {Array?} restrict，指定哪些数据需要验证
-    * @param {Boolean} isCheckAll，是否需要验证全部数据
-    * @return {thenable object} 返回一个带有 then 回调的对象，如果验证内容，没有涉及异步，此对象的回调，将同步执行
-   */
+   * 启动验证
+   * @param {Object} data，需要验证的数据
+   * @param {Array?} restrict，指定哪些数据需要验证
+   * @param {Boolean} isCheckAll，是否需要验证全部数据
+   * @return {thenable object} 返回一个带有 then 回调的对象，如果验证内容，没有涉及异步，此对象的回调，将同步执行
+  */
   start: function(data, restrict, isCheckAll) {
     data = data || {};
 
@@ -584,6 +599,13 @@ PipeValid.prototype = {
     return thenable;
   },
 
+  /**
+   * 验证数据
+   * @param {Array} [validList] 需要验证的数据，结构如下: [ [{key,value,index}], [] ]
+   * @param {Function} [endFn] 验证完毕的回调函数，endFn(error)
+   * @param {Boolean} [isCheckAll] 是否验证所有错误，默认是 false
+   * @return {void 0}
+  */
   _checkAll: function(validList, endFn, isCheckAll) {
     var self = this;
     var errorList = [];
@@ -597,7 +619,7 @@ PipeValid.prototype = {
 
         valider.start(value, function callback(error) {
           if (error) {
-            error.index = index;
+            extend(error, item);
             if (isCheckAll) {
               errorList.push(error);
               next();
@@ -616,6 +638,12 @@ PipeValid.prototype = {
     });
   },
 
+  /**
+   * 获取需要验证的列表
+   * @param {Object} [data] 数据源
+   * @param {Array?} [restrict] 需要验证的数据 key 列表，默认为空
+   * @return {Array: [[{key,value,index}], []] }
+  */
   _obtainValidList: function(data, restrict) {
     var self = this;
     var validers = this.validers;
@@ -639,6 +667,13 @@ PipeValid.prototype = {
     return validList;
   },
 
+  /**
+   * 把字符串属性，翻遍为列表
+   * @param {Object} [data] 数据源
+   * @param {String} [key] 数据源中，属性的key值
+   * @param {Boolean} [ignoreEmpty] 如果属性不存在，是不是忽略？默认不忽略
+   * @return {Array:[ {key, value, index:如果是数组，同一个key会有多个index值} ]}
+  */
   _explainAttrToList: function(data, key, ignorEmpty) {
     var list = [];
     forEach(compileToAttr(data, key), function(item, index) {

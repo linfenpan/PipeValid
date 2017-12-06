@@ -11,7 +11,10 @@ const replace = require('gulp-replace');
 // 进行 umd 打包
 const headerText = `/*! ${pkg.name}-${pkg.version} by ${pkg.author} ${pkg.license} ${pkg.homepage}*/
 (function (root, factory) {
-  if (typeof define === 'function') {
+  if (typeof module === 'object') {
+    // webpack
+    module.exports = factory();
+  } else if (typeof define === 'function') {
     if (define.amd) {
       // AMD
       define(factory);

@@ -48,12 +48,12 @@ PipeValid.prototype = {
   },
 
   /**
-    * 启动验证
-    * @param {Object} data，需要验证的数据
-    * @param {Array?} restrict，指定哪些数据需要验证
-    * @param {Boolean} isCheckAll，是否需要验证全部数据
-    * @return {thenable object} 返回一个带有 then 回调的对象，如果验证内容，没有涉及异步，此对象的回调，将同步执行
-   */
+   * 启动验证
+   * @param {Object} data，需要验证的数据
+   * @param {Array?} restrict，指定哪些数据需要验证
+   * @param {Boolean} isCheckAll，是否需要验证全部数据
+   * @return {thenable object} 返回一个带有 then 回调的对象，如果验证内容，没有涉及异步，此对象的回调，将同步执行
+  */
   start: function(data, restrict, isCheckAll) {
     data = data || {};
 
@@ -82,6 +82,13 @@ PipeValid.prototype = {
     return thenable;
   },
 
+  /**
+   * 验证数据
+   * @param {Array} [validList] 需要验证的数据，结构如下: [ [{key,value,index}], [] ]
+   * @param {Function} [endFn] 验证完毕的回调函数，endFn(error)
+   * @param {Boolean} [isCheckAll] 是否验证所有错误，默认是 false
+   * @return {void 0}
+  */
   _checkAll: function(validList, endFn, isCheckAll) {
     var self = this;
     var errorList = [];
@@ -95,7 +102,7 @@ PipeValid.prototype = {
 
         valider.start(value, function callback(error) {
           if (error) {
-            error.index = index;
+            extend(error, item);
             if (isCheckAll) {
               errorList.push(error);
               next();
@@ -114,6 +121,12 @@ PipeValid.prototype = {
     });
   },
 
+  /**
+   * 获取需要验证的列表
+   * @param {Object} [data] 数据源
+   * @param {Array?} [restrict] 需要验证的数据 key 列表，默认为空
+   * @return {Array: [[{key,value,index}], []] }
+  */
   _obtainValidList: function(data, restrict) {
     var self = this;
     var validers = this.validers;
@@ -137,6 +150,13 @@ PipeValid.prototype = {
     return validList;
   },
 
+  /**
+   * 把字符串属性，翻遍为列表
+   * @param {Object} [data] 数据源
+   * @param {String} [key] 数据源中，属性的key值
+   * @param {Boolean} [ignoreEmpty] 如果属性不存在，是不是忽略？默认不忽略
+   * @return {Array:[ {key, value, index:如果是数组，同一个key会有多个index值} ]}
+  */
   _explainAttrToList: function(data, key, ignorEmpty) {
     var list = [];
     forEach(compileToAttr(data, key), function(item, index) {
